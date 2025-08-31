@@ -1,0 +1,80 @@
+Minecraft Java 1.20.1 Chat Command Cheat Sheet
+
+
+Chat & Permissions
+
+- Prefix: Commands must start with /. 
+- Length: Max 256 characters per chat command.
+- Cheats: Enable Allow Cheats in a singleplayer world or be an operator (OP) on a server.
+- Multi-line: Not supported — one line only. 
+- Command blocks: Accept much longer commands (≈32,767 chars) and do not need the / prefix.
+
+
+Syntax & Structure
+
+- Brigadier parser: literal <required_argument> [optional_argument] (choice_one|choice_two) …
+- Quoted strings: Use 'single' or "double" quotes to contain arguments with spaces.
+- Escaping quotes: Inside a 'single'-quoted string use \' for apostrophes; inside a "double"-quoted string use \".
+
+
+Target Selectors
+
+- @p → nearest player, @a → all players, @r → random player, @s → self, @e → all entities.
+- Filters go in [] and are comma-separated.
+  - Example: @e[type=zombie,distance=..5,limit=1,sort=nearest]
+
+
+Coordinates
+
+- Absolute: 100 64 -30 — fixed world coords (X Y Z).
+- Relative: ~ ~ ~ — relative to executor position. Offsets like ~5 ~ ~-3 are allowed.
+- Local: ^ ^ ^ — relative to look direction: ^left/right ^up/down ^forward/backward.
+  - IMPORTANT: Each caret coordinate must have a numeric value. A bare ^ is invalid. Use ^0 for zero offset.
+    - Valid: ^-18 ^0 ^22
+    - Invalid: ^-18 ^ ^22  (bare ^ → “Expected double” error)
+- Do not mix coordinate types within the same coordinate triplet. All three numbers in a set must be of the same type (all absolute, all ~, or all ^).
+
+
+Block States
+
+- Syntax: minecraft:block_id[property1=value1,property2=value2]
+- Properties are specific to each block.
+  - Example: Standing sign (oak_sign) uses rotation, wall sign (oak_wall_sign) uses facing.
+    - setblock ~ ~ ~ minecraft:oak_sign[rotation=8]
+    - setblock ~ ~ ~ minecraft:oak_wall_sign[facing=south]
+
+
+NBT (SNBT format)
+
+- Compound: {key:value, ...}   List: [item1, item2, ...]
+- Numeric suffixes: 10b (byte), 5s (short), 3L (long), 1.5f (float), 2.0d (double). Integers can omit suffix.
+- Strings: Must be in 'single' or "double" quotes.
+- Namespaces: Always include minecraft: prefix for clarity (e.g., minecraft:stone, minecraft:sharpness).
+
+
+Raw JSON Text
+
+- Used in names, lore, signs, tellraw, title, etc. When embedded in SNBT it must be a single string.
+  - Example Name (SNBT with double-quoted JSON): display:{Name:"{\"text\":\"Cursed Blade\",\"italic\":false}"}
+  - Example Name (SNBT with single-quoted JSON; escape ASCII apostrophes inside JSON):
+    display:{Name:'{"text":"Marin\'s Blade","italic":false}'}
+  - Tip: Using typographic apostrophe (’ U+2019) inside JSON also avoids closing a single-quoted SNBT string.
+
+
+Resource Locations
+
+- Format: namespace:id — default namespace is minecraft.
+- Examples: minecraft:netherite_sword, minecraft:sharpness, minecraft:zombie
+
+
+Pre-flight Checklist (Before Enter)
+
+1) Under 256 chars (or using a command block)?
+2) Cheats enabled / OP permissions?
+3) All {} and [] balanced (no missing commas between entries)?
+4) Raw JSON (names/signs) is a single, well-formed string and any ' inside single-quoted JSON is escaped (\')?
+5) Target selector filters @e[...] are comma-separated?
+6) Coordinate sets do not mix types (no ~ with ^ in the same set)?
+7) Caret coordinates have explicit numbers (replace any bare ^ with ^0)?
+8) Block states used are valid for that block (facing vs rotation, etc.)?
+

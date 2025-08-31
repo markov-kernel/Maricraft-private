@@ -3,6 +3,7 @@ import threading
 import time
 import shlex
 import json
+import re
 from dataclasses import dataclass
 
 try:
@@ -13,16 +14,31 @@ except Exception:  # pragma: no cover
     ttk = None
     messagebox = None
 
+# Optional Quartz injection (fast, layout-agnostic typing)
+try:
+    from Quartz import (
+        CGEventCreateKeyboardEvent,
+        CGEventKeyboardSetUnicodeString,
+        CGEventPost,
+        kCGHIDEventTap,
+    )
+    HAVE_QUARTZ = True
+except Exception:
+    HAVE_QUARTZ = False
+
 
 @dataclass
 class Settings:
     chat_key: str = "t"  # 't' or '/'
-    delay_ms: int = 150
+    delay_ms: int = 40
     press_escape_first: bool = True
     type_instead_of_paste: bool = True
     paste_repeats: int = 2
-    force_ascii_layout: bool = False
-    typing_segment_delay_ms: int = 8
+    force_ascii_layout: bool = True
+    typing_segment_delay_ms: int = 0
+    use_quartz_injection: bool = False
+    turbo_mode: bool = True
+    ultra_mode: bool = True
     turbo_mode: bool = False
 
 
@@ -124,31 +140,49 @@ class MacAutomator:
         except Exception:
             return ""
 
-    def focus_minecraft(self, attempts: int = 8, settle_ms: int = 250) -> bool:
-        # Simple, robust focusing: activate Minecraft; then try explicit process names without list iteration
-        simp_script = r'''
+    def _frontmost_process_pid(self) -> int:
+        script = r'''
         try
-            tell application "Minecraft" to activate
+            tell application "System Events"
+                set pidnum to unix id of first process whose frontmost is true
+            end tell
+            return pidnum as text
+        on error
+            return "0"
         end try
-        delay 0.05
-        try
-            tell application "System Events" to set frontmost of process "Minecraft" to true
-        end try
-        try
-            tell application "System Events" to set frontmost of process "java" to true
-        end try
-        try
-            tell application "System Events" to set frontmost of process "javaw" to true
-        end try
+        '''
+        proc = self._osascript(script)
+        try:
+            return int((proc.stdout or b"0").decode("utf-8", "ignore").strip() or "0")
+        except Exception:
+            return 0
+
+    def focus_minecraft(self, attempts: int = 3, settle_ms: int = 100) -> bool:
+        # Bring the running Java game client to front (avoid launching the Launcher)
+        script = r'''
+        tell application "System Events"
+            try
+                set frontmost of process "java" to true
+                try
+                    tell process "java" to tell window 1 to perform action "AXRaise"
+                end try
+            end try
+            try
+                set frontmost of process "javaw" to true
+                try
+                    tell process "javaw" to tell window 1 to perform action "AXRaise"
+                end try
+            end try
+        end tell
         '''
 
         for i in range(max(1, attempts)):
-            self._osascript(simp_script)
-            self._log(f"Focus attempt {i+1}/{attempts}: issued activate/raise")
+            self._osascript(script)
+            self._log(f"Focus attempt {i+1}/{attempts}: raised 'java/javaw'")
             time.sleep(max(settle_ms, 0) / 1000.0)
             front = (self._frontmost_process_name() or "").lower()
             self._log(f"Frontmost after attempt {i+1}: '{front}'")
-            if ("minecraft" in front and "launcher" not in front) or any(k == front for k in ("java", "javaw")):
+            if front == "java" or front == "javaw" or "java" in front:
                 return True
         return False
 
@@ -282,17 +316,29 @@ class MacAutomator:
             if not focused:
                 self._status("Could not focus Minecraft. Ensure Accessibility is enabled and the game window is visible, then try again.")
                 return
-            self._sleep(max(300, settings.delay_ms))
+            # Short settle after focusing
+            if settings.turbo_mode:
+                self._sleep(60)
+            else:
+                self._sleep(max(120, settings.delay_ms))
 
-            # If typing, ensure ASCII-friendly layout to avoid dead keys (e.g., '~') or Unicode minus
-            if settings.type_instead_of_paste and settings.force_ascii_layout:
+            # If typing without Quartz, ensure ASCII-friendly layout to avoid dead keys
+            if (
+                settings.type_instead_of_paste
+                and not settings.use_quartz_injection
+                and settings.force_ascii_layout
+            ):
                 switched_layout, prev_layout = self._maybe_force_ascii_input()
                 self._sleep(120)
 
             if settings.press_escape_first:
                 self._status("Resuming game (Esc)…")
                 self.key_escape()
-                self._sleep(120)
+                # Minimal settle after Esc in ultra mode
+                if settings.ultra_mode:
+                    self._sleep(5)
+                else:
+                    self._sleep(120)
 
             cleaned = [ln for ln in commands if ln.strip() and not ln.strip().startswith("#")]
             for idx, line in enumerate(cleaned, start=1):
@@ -305,6 +351,12 @@ class MacAutomator:
                 if settings.chat_key == "/" and line_to_send.startswith("/"):
                     line_to_send = line_to_send[1:]
 
+                # Preflight normalization: replace bare '^' with '^0'
+                norm_line = self._normalize_carets(line_to_send)
+                if norm_line != line_to_send:
+                    self._log(f"Normalized carets: '{line_to_send}' -> '{norm_line}'")
+                line_to_send = norm_line
+
                 # Default to safe typing; paste path remains available if user disables typing
                 use_typing = settings.type_instead_of_paste
 
@@ -312,10 +364,10 @@ class MacAutomator:
                 self.open_chat(settings.chat_key)
                 # Allow chat field to appear and focus; skip nudge for typing path
                 if use_typing:
-                    if settings.turbo_mode:
-                        self._sleep(40)
+                    if settings.ultra_mode:
+                        self._sleep(5)
                     else:
-                        self._sleep(max(80, settings.delay_ms // 2))
+                        self._sleep(30 if settings.turbo_mode else max(80, settings.delay_ms // 2))
                 else:
                     self._sleep(max(220, settings.delay_ms))
                     self.poke_input()
@@ -325,10 +377,42 @@ class MacAutomator:
                 self._log(f"Command line: {line}")
                 line_start = time.monotonic()
                 if use_typing:
-                    # Directly type characters to avoid paste issues
-                    # Use safe tilde typing on non-US layouts
-                    self.type_line_safely(line_to_send, per_segment_delay_ms=max(0, int(settings.typing_segment_delay_ms)))
-                    if settings.turbo_mode:
+                    # Use Quartz injection when available and enabled; fallback to keystroke typing
+                    injected = False
+                    if settings.use_quartz_injection and HAVE_QUARTZ:
+                        pid = self._frontmost_process_pid()
+                        injected = self.inject_text_quartz(line_to_send, target_pid=pid if pid > 0 else None)
+                        if injected:
+                            self._status(f"{idx}/{len(cleaned)}: Input line (injected)…")
+                            # Verify injection landed by copying field content
+                            expected_field = ("/" + line_to_send) if settings.chat_key == "/" else line_to_send
+                            sentinel = f"__MARICRAFT_SENTINEL__{int(time.time()*1000)}__"
+                            self.set_clipboard(sentinel)
+                            self._sleep(60)
+                            self.select_all()
+                            self._sleep(40)
+                            self.copy_selection()
+                            self._sleep(80)
+                            got = (self.get_clipboard() or "").strip().replace("\r", "")
+                            exp = expected_field.strip().replace("\r", "")
+                            if not got or got == sentinel or got != exp:
+                                self._log("Injection verify failed; falling back to keystroke typing")
+                                injected = False
+                            else:
+                                self._log("Injection verified OK")
+                        if not injected:
+                            self._log("Quartz injection failed; falling back to keystroke typing")
+                    if not injected:
+                        # Type the whole line; if ASCII layout is forced, avoid dead-key tilde routine
+                        if settings.force_ascii_layout:
+                            self.keystroke(line_to_send)
+                        else:
+                            self.type_line_safely(
+                                line_to_send, per_segment_delay_ms=max(0, int(settings.typing_segment_delay_ms))
+                            )
+                    if settings.ultra_mode:
+                        self._sleep(5)
+                    elif settings.turbo_mode:
                         self._sleep(30)
                     else:
                         self._sleep(max(60, settings.delay_ms // 2))
@@ -387,7 +471,9 @@ class MacAutomator:
                 self.press_enter()
 
                 # Safety delay between lines
-                if settings.turbo_mode and use_typing:
+                if settings.ultra_mode and use_typing:
+                    self._sleep(5)
+                elif settings.turbo_mode and use_typing:
                     self._sleep(40)
                 else:
                     self._sleep(max(60, settings.delay_ms))
@@ -401,6 +487,42 @@ class MacAutomator:
                 self._sleep(120)
                 self._restore_input_source(prev_layout)
 
+    def _normalize_carets(self, s: str) -> str:
+        # Replace any caret not followed by an optional minus and digit with ^0
+        # Cases: '^ ' '^,' '^]' '^~' '^minecraft' etc.
+        return re.sub(r"\^(?!-?\d)", "^0", s)
+
+    def inject_text_quartz(self, text: str, target_pid: int | None = None) -> bool:
+        if not HAVE_QUARTZ:
+            return False
+        try:
+            # Chunk long strings to be safe with event size
+            chunk = 256
+            for i in range(0, len(text), chunk):
+                seg = text[i : i + chunk]
+                ev_down = CGEventCreateKeyboardEvent(None, 0, True)
+                CGEventKeyboardSetUnicodeString(ev_down, len(seg), seg)
+                try:
+                    from Quartz import CGEventPostToPid as _post_pid
+                except Exception:
+                    _post_pid = None
+                if target_pid and _post_pid:
+                    _post_pid(target_pid, ev_down)
+                else:
+                    CGEventPost(kCGHIDEventTap, ev_down)
+                ev_up = CGEventCreateKeyboardEvent(None, 0, False)
+                CGEventKeyboardSetUnicodeString(ev_up, len(seg), seg)
+                if target_pid and _post_pid:
+                    _post_pid(target_pid, ev_up)
+                else:
+                    CGEventPost(kCGHIDEventTap, ev_up)
+                # Small inter-chunk delay to avoid flooding
+                self._sleep(1)
+            return True
+        except Exception as e:
+            self._log(f"Quartz inject error: {e}")
+            return False
+
 
 class App:
     def __init__(self, root: tk.Tk):
@@ -411,13 +533,14 @@ class App:
 
         self.stop_event = threading.Event()
         self.automator = MacAutomator(status_cb=self._set_status, stop_event=self.stop_event)
+        self.hotkeys = None
 
         # UI Elements
         self._build_widgets()
 
         # Defaults
         self.chat_key_var.set("t")
-        self.delay_var.set("150")
+        self.delay_var.set("40")
         self.escape_var.set(True)
 
     def _build_widgets(self):
@@ -464,28 +587,13 @@ class App:
         self.escape_var = tk.BooleanVar(value=True)
         ttk.Checkbutton(row1, text="Press Esc to resume first", variable=self.escape_var).pack(side=tk.LEFT, padx=(16, 4))
 
-        self.type_var = tk.BooleanVar(value=True)
-        ttk.Checkbutton(row1, text="Type text instead of paste", variable=self.type_var).pack(side=tk.LEFT, padx=(16, 4))
-
-        self.fast_var = tk.BooleanVar(value=False)
-        ttk.Checkbutton(row1, text="Fast mode (single paste)", variable=self.fast_var).pack(side=tk.LEFT, padx=(16, 4))
-
-        # Second row: typing/ASCII/turbo controls
+        # Simplified: only Quartz toggle in the second row
         row2 = ttk.Frame(opt)
         row2.pack(fill=tk.X, padx=0, pady=(2, pad//2))
 
-        self.ascii_var = tk.BooleanVar(value=False)
-        ttk.Checkbutton(row2, text="Force ASCII layout while typing", variable=self.ascii_var).pack(side=tk.LEFT, padx=(pad, 8))
-
-        speed_frame = ttk.Frame(row2)
-        speed_frame.pack(side=tk.LEFT, padx=(8, 0))
-        ttk.Label(speed_frame, text="Typing seg (ms):").pack(side=tk.LEFT)
-        self.type_seg_var = tk.StringVar(value="8")
-        self.type_seg_entry = ttk.Spinbox(speed_frame, from_=0, to=50, increment=1, textvariable=self.type_seg_var, width=4)
-        self.type_seg_entry.pack(side=tk.LEFT, padx=(4, 0))
-
-        self.turbo_var = tk.BooleanVar(value=False)
-        ttk.Checkbutton(row2, text="Turbo typing", variable=self.turbo_var, command=self.on_toggle_turbo).pack(side=tk.LEFT, padx=(16, 4))
+        self.quartz_var = tk.BooleanVar(value=False)
+        label = "Quartz inject (fast)" + ("" if HAVE_QUARTZ else " (unavailable)")
+        ttk.Checkbutton(row2, text=label, variable=self.quartz_var).pack(side=tk.LEFT, padx=(pad, 8))
 
         # Text area
         txt_frame = ttk.LabelFrame(frm, text="Commands (one per line; blank/# lines ignored)")
@@ -593,11 +701,12 @@ class App:
             chat_key=self.chat_key_var.get(),
             delay_ms=delay,
             press_escape_first=self.escape_var.get(),
-            type_instead_of_paste=self.type_var.get(),
-            paste_repeats=(1 if getattr(self, 'fast_var', None) and self.fast_var.get() else 2),
-            force_ascii_layout=(getattr(self, 'ascii_var', None) and self.ascii_var.get()),
-            typing_segment_delay_ms=max(0, int(self.type_seg_var.get() or 0)),
-            turbo_mode=self.turbo_var.get(),
+            type_instead_of_paste=True,
+            paste_repeats=1,
+            force_ascii_layout=True,
+            typing_segment_delay_ms=0,
+            turbo_mode=True,
+            use_quartz_injection=self.quartz_var.get() and HAVE_QUARTZ,
         )
 
         # Enforce turbo overrides at run time for consistency
@@ -620,6 +729,14 @@ class App:
         logger = Logger("log.txt")
         self.automator.logger = logger
 
+        # Start global hotkey watcher (Space+Esc stops)
+        try:
+            if HotkeyWatcher is not None:
+                self.hotkeys = HotkeyWatcher(self.stop_event, logger=logger)
+                self.hotkeys.start()
+        except Exception:
+            pass
+
         def worker():
             try:
                 self.automator.run_commands(lines, settings)
@@ -628,6 +745,11 @@ class App:
                 self.root.after(0, lambda: self.stop_btn.config(state=tk.DISABLED))
                 try:
                     logger.close()
+                except Exception:
+                    pass
+                try:
+                    if self.hotkeys:
+                        self.hotkeys.stop()
                 except Exception:
                     pass
 

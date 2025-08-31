@@ -10,6 +10,11 @@ Commands:
 
 - Start the UI: `uv run python -m maricraft`
 
+Defaults and speed
+
+- Default mode is tuned for speed: typing (not paste), turbo timings, ASCII layout safe handling enabled. Delay defaults to 40 ms. You can further tweak Delay if needed.
+- Optional: toggle "Quartz inject (fast)". On some setups this is ignored by the game; when enabled the app verifies injection and falls back to typing if it didn’t land.
+
 AI Assistant (Create & Debug)
 
 - Create new commands or debug failing ones from the AI tab.
@@ -33,3 +38,4 @@ Notes
 
 - Target process names tried: `Minecraft`, `java`, `javaw`. If the game window isn’t focused reliably, click the game once before running.
 - Only use in contexts where macros are allowed.
+- For fastest typing, enable "Quartz inject (fast)" in Options. This uses macOS Quartz to insert text directly (requires Accessibility permissions). If unavailable, the checkbox will indicate it.
