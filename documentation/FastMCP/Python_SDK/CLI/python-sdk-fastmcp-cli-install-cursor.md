@@ -1,0 +1,92 @@
+# fastmcp.cli.install.cursor
+# fastmcp.cli.install.cursor
+
+> **Category:** fastmcp.cli.install.cursor
+> **Source:** gofastmcp.com_python-sdk_fastmcp-cli-install-cursor.json
+
+---
+
+install
+
+cursor
+
+fastmcp.cli.install.cursor
+
+Cursor integration for FastMCP install using Cyclopts.
+
+## Functions
+
+generate_cursor_deeplink
+
+Copy
+
+```
+generate_cursor_deeplink(server_name: str, server_config: StdioMCPServer) -> str
+
+```
+
+Generate a Cursor deeplink for installing the MCP server.**Args:**
+
+- `server_name`: Name of the server
+- `server_config`: Server configuration
+
+**Returns:**
+
+- Deeplink URL that can be clicked to install the server
+
+open_deeplink
+
+Copy
+
+```
+open_deeplink(deeplink: str) -> bool
+
+```
+
+Attempt to open a deeplink URL using the system’s default handler.**Args:**
+
+- `deeplink`: The deeplink URL to open
+
+**Returns:**
+
+- True if the command succeeded, False otherwise
+
+install_cursor
+
+Copy
+
+```
+install_cursor(file: Path, server_object: str | None, name: str) -> bool
+
+```
+
+Install FastMCP server in Cursor.**Args:**
+
+- `file`: Path to the server file
+- `server_object`: Optional server object name (for :object suffix)
+- `name`: Name for the server in Cursor
+- `with_editable`: Optional directory to install in editable mode
+- `with_packages`: Optional list of additional packages to install
+- `env_vars`: Optional dictionary of environment variables
+- `python_version`: Optional Python version to use
+- `with_requirements`: Optional requirements file to install from
+- `project`: Optional project directory to run within
+
+**Returns:**
+
+- True if installation was successful, False otherwise
+
+cursor_command
+
+Copy
+
+```
+cursor_command(server_spec: str) -> None
+
+```
+
+Install an MCP server in Cursor.**Args:**
+
+- `server_spec`: Python file to install, optionally with :object suffix
+
+[claude\_desktop](https://gofastmcp.com/python-sdk/fastmcp-cli-install-claude_desktop) [mcp\_json](https://gofastmcp.com/python-sdk/fastmcp-cli-install-mcp_json)

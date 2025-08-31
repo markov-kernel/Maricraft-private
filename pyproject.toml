@@ -1,0 +1,15 @@
+[project]
+name = "maricraft"
+version = "0.1.0"
+description = "Minecraft chat macro runner with optional AI assistant"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "openai-agents[litellm]>=0.2.0,<=0.2.10",
+  "python-dotenv>=1.0.1",
+  "jsonschema>=4.22.0",
+  "pydantic>=2.6",
+]
+
+[tool.uv]
+dev-dependencies = []

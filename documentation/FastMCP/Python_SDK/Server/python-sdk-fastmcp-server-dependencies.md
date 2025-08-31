@@ -1,0 +1,46 @@
+# fastmcp.server.dependencies
+# fastmcp.server.dependencies
+
+> **Category:** fastmcp.server.dependencies
+> **Source:** gofastmcp.com_python-sdk_fastmcp-server-dependencies.json
+
+---
+
+dependencies
+
+fastmcp.server.dependencies
+
+## Functions
+
+get_context
+
+Copy
+
+```
+get_context() -> Context
+
+```
+
+get_http_request
+
+Copy
+
+```
+get_http_request() -> Request
+
+```
+
+get_http_headers
+
+Copy
+
+```
+get_http_headers(include_all: bool = False) -> dict[str, str]
+
+```
+
+Extract headers from the current HTTP request if available.Never raises an exception, even if there is no active HTTP request (in which case
+an empty dict is returned).By default, strips problematic headers like `content-length` that cause issues if forwarded to downstream clients.
+If `include_all` is True, all headers are returned.
+
+[context](https://gofastmcp.com/python-sdk/fastmcp-server-context) [elicitation](https://gofastmcp.com/python-sdk/fastmcp-server-elicitation)
