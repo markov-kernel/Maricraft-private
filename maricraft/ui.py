@@ -124,57 +124,27 @@ class MacAutomator:
         except Exception:
             return ""
 
-    def focus_minecraft(self, attempts: int = 12, settle_ms: int = 350) -> bool:
-        # Try to bring the actual game client to the front, avoiding the Launcher and browsers.
-        # Prefer processes named 'java'/'javaw' that own windows with titles containing "Minecraft".
-        focus_script = r'''
-        on focus_game()
-            tell application "System Events"
-                set candidates to {}
-                try
-                    set candidates to (processes whose name is "java" or name is "javaw" or name is "Minecraft")
-                end try
-
-                -- First pass: pick java/javaw with a Minecraft window title (not Launcher)
-                repeat with p in candidates
-                    set wnames to {}
-                    try
-                        set wnames to name of windows of p
-                    end try
-                    repeat with t in wnames
-                        set t2 to (t as text)
-                        if (t2 contains "Minecraft") and (t2 does not contain "Launcher") then
-                            try
-                                set frontmost of p to true
-                                try
-                                    tell p to tell window 1 to perform action "AXRaise"
-                                end try
-                                return name of p
-                            end try
-                        end if
-                    end repeat
-                end repeat
-
-                -- Second pass: focus any process explicitly named Minecraft
-                try
-                    set mcprocs to (processes whose name is "Minecraft")
-                    repeat with p in mcprocs
-                        try
-                            set frontmost of p to true
-                            return name of p
-                        end try
-                    end repeat
-                end try
-            end tell
-            return ""
-        end focus_game
-        focus_game()
+    def focus_minecraft(self, attempts: int = 8, settle_ms: int = 250) -> bool:
+        # Simple, robust focusing: activate Minecraft; then try explicit process names without list iteration
+        simp_script = r'''
+        try
+            tell application "Minecraft" to activate
+        end try
+        delay 0.05
+        try
+            tell application "System Events" to set frontmost of process "Minecraft" to true
+        end try
+        try
+            tell application "System Events" to set frontmost of process "java" to true
+        end try
+        try
+            tell application "System Events" to set frontmost of process "javaw" to true
+        end try
         '''
 
         for i in range(max(1, attempts)):
-            proc = self._osascript(focus_script)
-            out = (proc.stdout or b"").decode("utf-8", "ignore").strip()
-            self._log(f"Focus attempt {i+1}/{attempts}: focused '{out}'")
+            self._osascript(simp_script)
+            self._log(f"Focus attempt {i+1}/{attempts}: issued activate/raise")
             time.sleep(max(settle_ms, 0) / 1000.0)
             front = (self._frontmost_process_name() or "").lower()
             self._log(f"Frontmost after attempt {i+1}: '{front}'")
