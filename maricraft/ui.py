@@ -304,6 +304,26 @@ class MacAutomator:
         # Return key
         self.keycode(36)
 
+    def send_quick_command(self, line: str, settings: Settings):
+        # Minimal path: assumes game is already focused and unpaused
+        # Normalize carets, open chat, type, send
+        line_to_send = line
+        if settings.chat_key == "/" and line_to_send.startswith("/"):
+            line_to_send = line_to_send[1:]
+        line_to_send = self._normalize_carets(line_to_send)
+
+        self._status("Post-run: teleporting back 75…")
+        self.open_chat(settings.chat_key)
+        self._sleep(10 if settings.ultra_mode else max(60, settings.delay_ms // 2))
+        # Prefer keystroke typing (fast, safe)
+        if settings.force_ascii_layout:
+            self.keystroke(line_to_send)
+        else:
+            self.type_line_safely(line_to_send, per_segment_delay_ms=max(0, int(settings.typing_segment_delay_ms)))
+        self._sleep(10 if settings.ultra_mode else max(60, settings.delay_ms // 2))
+        self.press_enter()
+        self._status("Post-run teleport sent.")
+
     def run_commands(self, commands: list[str], settings: Settings):
         # Save original clipboard
         original_clipboard = self.get_clipboard()
@@ -488,9 +508,19 @@ class MacAutomator:
                 self._restore_input_source(prev_layout)
 
     def _normalize_carets(self, s: str) -> str:
-        # Replace any caret not followed by an optional minus and digit with ^0
-        # Cases: '^ ' '^,' '^]' '^~' '^minecraft' etc.
-        return re.sub(r"\^(?!-?\d)", "^0", s)
+        """Normalize coordinate syntax to avoid common parse errors.
+
+        - Replace any bare caret '^' with '^0'.
+        - Replace any bare tilde '~' with '~0'.
+        - Remove explicit plus signs after '~' or '^' (e.g., '~+5' -> '~5', '^+2' -> '^2').
+        """
+        # 1) Caret must be followed by a number: '^' -> '^0'
+        s = re.sub(r"\^(?!-?\d)", "^0", s)
+        # 1b) Tilde may be bare, but normalize to '~0' to avoid parse edge cases
+        s = re.sub(r"~(?!-?\d)", "~0", s)
+        # 2) Remove explicit '+' after ~ or ^ (Minecraft doesn't accept '+')
+        s = re.sub(r"([~\^])\+(?=\d)", r"\1", s)
+        return s
 
     def inject_text_quartz(self, text: str, target_pid: int | None = None) -> bool:
         if not HAVE_QUARTZ:
@@ -609,6 +639,8 @@ class App:
         self.run_btn.pack(side=tk.LEFT)
         self.stop_btn = ttk.Button(btns, text="Stop", command=self.on_stop, state=tk.DISABLED)
         self.stop_btn.pack(side=tk.LEFT, padx=(8, 0))
+        self.back_btn = ttk.Button(btns, text="Back 75", command=self.on_back_75)
+        self.back_btn.pack(side=tk.LEFT, padx=(8, 0))
 
     def _build_ai_tab(self, frm: ttk.Frame, pad: int):
         try:
@@ -740,6 +772,11 @@ class App:
         def worker():
             try:
                 self.automator.run_commands(lines, settings)
+                # Auto-teleport back 75 blocks when finished
+                try:
+                    self.automator.send_quick_command("/tp @s ^ ^ ^-75", settings)
+                except Exception:
+                    pass
             finally:
                 self.root.after(0, lambda: self.run_btn.config(state=tk.NORMAL))
                 self.root.after(0, lambda: self.stop_btn.config(state=tk.DISABLED))
@@ -758,6 +795,49 @@ class App:
     def on_stop(self):
         self.stop_event.set()
         self._set_status("Stopping…")
+
+    def on_back_75(self):
+        # One-click teleport 100 blocks backwards at current elevation
+        try:
+            delay = int(self.delay_var.get())
+        except ValueError:
+            delay = 40
+
+        settings = Settings(
+            chat_key=self.chat_key_var.get(),
+            delay_ms=delay,
+            press_escape_first=self.escape_var.get(),
+            type_instead_of_paste=True,
+            paste_repeats=1,
+            force_ascii_layout=True,
+            typing_segment_delay_ms=0,
+            turbo_mode=True,
+            ultra_mode=True,
+            use_quartz_injection=False,
+        )
+
+        # Use local coordinates to move back along look direction; ^ ^ ^-100
+        lines = ["/tp @s ^ ^ ^-75"]
+
+        self.run_btn.config(state=tk.DISABLED)
+        self.stop_btn.config(state=tk.NORMAL)
+        self.stop_event.clear()
+
+        logger = Logger("log.txt")
+        self.automator.logger = logger
+
+        def worker():
+            try:
+                self.automator.run_commands(lines, settings)
+            finally:
+                self.root.after(0, lambda: self.run_btn.config(state=tk.NORMAL))
+                self.root.after(0, lambda: self.stop_btn.config(state=tk.DISABLED))
+                try:
+                    logger.close()
+                except Exception:
+                    pass
+
+        threading.Thread(target=worker, daemon=True).start()
 
     def on_toggle_turbo(self):
         # Adjust UI to recommended turbo values when toggled on/off
