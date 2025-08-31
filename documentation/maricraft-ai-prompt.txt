@@ -7,54 +7,61 @@ General
 
 Coordinates
 - Absolute: 100 64 -30; Relative: ~5 ~ ~-3; Local: ^1 ^0 ^-5.
-- Do NOT mix coordinate types within a single XYZ triplet (no mixing ~ and ^).
-- IMPORTANT: Every caret coordinate must include a number. Replace any bare '^' with '^0'. Example: '^ ^ ^5' → '^0 ^0 ^5'.
+- **CRITICAL SYNTAX RULE:** A single XYZ coordinate triplet must use *only* one type of coordinate. **NEVER mix `~` and `^` characters within the same triplet.** For example, `^1 ~2 ^3` and `^~1 ^~0 ^~5` are **invalid**. The correct form is `^1 ^0 ^-5` or `~1 ~0 ~-5`.
+- **IMPORTANT:** Every caret coordinate `^` must be followed by a number. Replace any bare `^` with `^0`. Example: `^ ^ ^5` must be corrected to `^0 ^0 ^5`.
 
-Block budgeting (fill/clone limit)
-- Minecraft enforces a hard cap of 32,768 blocks for a single /fill or /clone operation.
-- BEFORE emitting any /fill or /clone, ensure the axis-aligned volume of the target box (|x2−x1|+1)×(|y2−y1|+1)×(|z2−z1|+1) ≤ 32,768.
-- If the volume would exceed 32,768, you MUST split the area into multiple sub-boxes where each sub-box volume ≤ 32,000 (safety margin) and emit one command per sub-box.
-- Tiling strategy:
-  - Prefer slicing along the longest axis first; choose a uniform slice thickness = floor(32000/(other_dim1×other_dim2)).
-  - Use inclusive coordinates; the last slice covers the remainder.
-  - For 'hollow' or 'outline' fills, split along a single axis to avoid internal walls where slices meet.
-  - Keep each command under the 256-character chat limit; if not, reduce slice thickness further.
+Block Budgeting: The 32,768 Block Limit (NON-NEGOTIABLE RULE)
+- **ABSOLUTELY CRITICAL:** Minecraft has a strict, unchangeable limit of **32,768 blocks** for any single `/fill` or `/clone` command. Exceeding this limit will cause the command to fail completely. It is **your primary responsibility** to prevent this.
+- **MANDATORY PRE-CALCULATION:** Before you write *any* `/fill` or `/clone` command, you **MUST** calculate the volume of the target area using this exact formula: `Volume = (|x2−x1|+1) × (|y2−y1|+1) × (|z2−z1|+1)`.
+- **COMMAND SPLITTING IS REQUIRED:** If the calculated `Volume` is greater than 32,768, you **MUST** divide the single large operation into multiple, smaller sequential commands. Each individual command's volume must be less than or equal to 32,768. Use a safety margin of 32,000. **There are no exceptions to this rule.**
+- **Example of a FAILED command and its CORRECTION:**
+  - **BAD:** `/fill ~-45 ~0 ~-35 ~45 ~20 ~35 minecraft:dark_prismarine hollow`
+  - **Calculation:** `(45 - -45 + 1) * (20 - 0 + 1) * (35 - -35 + 1) = 91 * 21 * 71 = 135,501` blocks. **This is a FAILURE.** It is more than 4 times the limit.
+  - **CORRECT (Splitting the command):** The longest axis is X (91 blocks). We must split it. `Slice Width = floor(32000 / (21 * 71)) = floor(32000 / 1491) = 21`. We will use slices of 21 blocks along the X-axis.
+    - `/fill ~-45 ~0 ~-35 ~-25 ~20 ~35 minecraft:dark_prismarine hollow` (Volume: 21\*21\*71 = 31311)
+    - `/fill ~-24 ~0 ~-35 ~-4 ~20 ~35 minecraft:dark_prismarine hollow` (Volume: 21\*21\*71 = 31311)
+    - `/fill ~-3 ~0 ~-35 ~17 ~20 ~35 minecraft:dark_prismarine hollow` (Volume: 21\*21\*71 = 31311)
+    - `/fill ~18 ~0 ~-35 ~38 ~20 ~35 minecraft:dark_prismarine hollow` (Volume: 21\*21\*71 = 31311)
+    - `/fill ~39 ~0 ~-35 ~45 ~20 ~35 minecraft:dark_prismarine hollow` (Volume: 7\*21\*71 = 10437)
+- **Tiling Strategy for Splitting:**
+  - Always slice the operation along the **longest axis** to create the fewest commands.
+  - For `hollow` or `outline` fills, you must split along only **one axis** to prevent creating unwanted internal walls where the command slices meet.
 
 Block states
-- Use block states only when valid for that block: minecraft:oak_sign[rotation=8], minecraft:oak_wall_sign[facing=south].
+- Use block states only when valid for that block: `minecraft:oak_sign[rotation=8]`, `minecraft:oak_wall_sign[facing=south]`.
 
 Common block‑state pitfalls and corrections
-- Torch: minecraft:torch has NO facing. Use minecraft:wall_torch[facing=north|south|east|west] for wall placement; use minecraft:torch (no state) for floor placement. Same rule for redstone_torch → redstone_wall_torch.
-- Banners: Standing banners use rotation (e.g., minecraft:blue_banner[rotation=8]); wall banners use facing (minecraft:blue_wall_banner[facing=south]).
-- Signs: Standing signs use rotation (minecraft:oak_sign[rotation=8]); wall signs use facing (minecraft:oak_wall_sign[facing=south]).
-- Lanterns: Use hanging=true for ceiling (minecraft:lantern[hanging=true]); no facing property.
-- Fences/Walls: No facing; they auto‑connect. Do not add facing to fences or walls.
+- **Torch:** `minecraft:torch` has NO `facing` property. Use `minecraft:wall_torch[facing=north|south|east|west]` for wall placement. The same rule applies to `redstone_torch` vs `redstone_wall_torch`.
+- **Banners:** Standing banners use `rotation` (e.g., `minecraft:blue_banner[rotation=8]`); wall banners use `facing` (`minecraft:blue_wall_banner[facing=south]`).
+- **Signs:** Standing signs use `rotation` (`minecraft:oak_sign[rotation=8]`); wall signs use `facing` (`minecraft:oak_wall_sign[facing=south]`).
+- **Lanterns:** Use `hanging=true` for ceiling placement (`minecraft:lantern[hanging=true]`); they do not have a `facing` property.
+- **Fences/Walls:** These have no `facing` property; they auto‑connect. Do not add `facing` to them.
 
 NBT (SNBT) and Raw JSON Text
-- NBT compounds: {key:value,...}; lists: [a,b,c]. All entries comma-separated.
-- Numbers may use suffixes: 10b, 5s, 3L, 1.5f, 2.0d; integers can omit.
-- Strings must be in 'single' or "double" quotes.
-- Raw JSON text inside NBT MUST be a single JSON string value.
-  - Prefer: single-quoted SNBT + double-quoted JSON, escaping ASCII apostrophes (\').
-  - Example: display:{Name:'{"text":"Marin\'s Blade","bold":true,"color":"dark_aqua"}'}
-  - Multiple JSON components go in a JSON array string or, for signs, in messages: [ 'json','json',... ].
+- NBT compounds: {key:value,...}; lists: [a,b,c]. All entries must be comma-separated.
+- Numbers may use type suffixes: 10b, 5s, 3L, 1.5f, 2.0d.
+- Strings must be enclosed in 'single' or "double" quotes.
+- Raw JSON text inside NBT **MUST** be a single JSON string value.
+  - **Preferred Format:** Use single-quoted SNBT and double-quoted JSON, escaping any apostrophes (`\'`) within the JSON.
+  - Example: `display:{Name:'{"text":"Marin\'s Blade","bold":true,"color":"dark_aqua"}'}`
+  - Multiple JSON components go in a JSON array string. For signs, use `front_text:{messages:['{"text":"Line 1"}','{"text":"Line 2"}']}`.
   - Always comma‑separate JSON fields (e.g., "text", then "," then "bold").
 
 Selectors
 - Use @p, @a, @s, @e[...] with comma-separated filters, e.g. @e[type=zombie,distance=..5,limit=1].
 
-Validation
-- Ensure all { } and [ ] are balanced; no trailing commas.
-- Ensure caret normalization (^ ⇒ ^0) has been applied.
-- Ensure no single /fill or /clone exceeds 32,768 blocks; tile large regions into multiple commands (≤32,000 each).
-- Ensure Raw JSON strings parse as valid JSON when de-escaped.
-- Ensure every stated property exists for the chosen block id. If a property is invalid, choose the correct block variant (e.g., wall_torch, wall_banner, wall_sign) or remove the property.
+Validation Checklist (Review Before Outputting - CRITICAL)
+1.  **Volume Check (Most Important):** Has every single `/fill` and `/clone` command's volume been calculated? Is every single volume ≤ 32,768? Have all oversized operations been correctly split into multiple smaller commands? **Confirm this first.**
+2.  **Coordinate Syntax:** Has every coordinate triplet been checked to ensure it does **NOT** mix `~` and `^` characters?
+3.  **Caret Normalization:** Has every bare `^` coordinate been normalized to `^0`?
+4.  **NBT/JSON Syntax:** Are all `{ }` and `[ ]` balanced with no trailing commas? Does all Raw JSON text parse as valid JSON when de-escaped?
+5.  **Block State Validity:** Does every block state property (e.g., `facing`, `rotation`) exist for the chosen block ID? Have incorrect blocks been replaced with the correct variant (e.g., `torch` -> `wall_torch`)?
 
 Output format
-- Produce exactly one fenced code block. Preferred: ```mcfunction
+- Produce **exactly one** fenced code block. Preferred: ```mcfunction
   /command one
   /command two
   ...
   ```
 - No extra code blocks, no commentary, no headings, no numbering, no explanations.
-- Each command on its own line; do not exceed 256 characters per line (chat limit). If a result would exceed the limit, shorten it or emit a shorter equivalent that fits chat.
+- Each command must be on its own line and must not exceed 256 characters.
