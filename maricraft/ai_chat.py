@@ -29,11 +29,10 @@ Mode = Literal["create", "debug"]
 
 
 def _load_env() -> None:
-    """Load environment variables from .env file if available."""
     try:
         from dotenv import load_dotenv
         load_dotenv()
-    except Exception:
+    except ImportError:
         pass
 
 
@@ -49,11 +48,9 @@ def _provider_prefs(require_parameters: bool) -> Dict[str, bool]:
 
 
 def _tail_file(path: Path, max_lines: int = 250) -> str:
-    """Read the last N lines from a file efficiently."""
+    if not path.exists():
+        return ""
     try:
-        if not path.exists():
-            return ""
-        # Efficient line tail: read last ~64KB chunk
         with path.open("rb") as f:
             f.seek(0, os.SEEK_END)
             size = f.tell()
@@ -62,7 +59,7 @@ def _tail_file(path: Path, max_lines: int = 250) -> str:
             data = f.read().decode("utf-8", errors="ignore")
         lines = data.splitlines()[-max_lines:]
         return "\n".join(lines)
-    except Exception:
+    except OSError:
         return ""
 
 
@@ -84,11 +81,8 @@ class AIChatController:
 
     def _log(self, msg: str) -> None:
         """Log a message if logger is available."""
-        try:
-            if self.logger is not None:
-                self.logger.log(msg)
-        except Exception:
-            pass
+        if self.logger is not None:
+            self.logger.log(msg)
 
     def _ensure_agent(self, mode: Mode, cfg: AIConfig) -> None:
         """Initialize or reinitialize the AI agent if needed."""
@@ -228,28 +222,18 @@ class AIChatController:
             return {"parsed": None, "raw": "", "error": str(e)}
 
         out = getattr(result, "final_output", None)
-        parsed: Optional[Dict[str, Any]] = None
-        raw: Optional[str] = None
-        err: Optional[str] = None
 
         try:
             if isinstance(out, str):
-                raw = out
-                parsed = json.loads(out)
+                return {"parsed": json.loads(out), "raw": out, "error": None}
             elif hasattr(out, "model_dump"):
                 parsed = out.model_dump()
-                raw = json.dumps(parsed)
+                return {"parsed": parsed, "raw": json.dumps(parsed), "error": None}
             elif isinstance(out, dict):
-                parsed = out
-                raw = json.dumps(out)
+                return {"parsed": out, "raw": json.dumps(out), "error": None}
             else:
-                raw = str(out)
-                parsed = None
-        except Exception as ex:
-            err = f"Failed to parse output: {ex}"
-
-        if err:
+                return {"parsed": None, "raw": str(out), "error": None}
+        except (json.JSONDecodeError, TypeError) as ex:
             self._log(f"AI response (raw): {str(out)[:4000]}")
-            self._log(err)
-
-        return {"parsed": parsed, "raw": raw, "error": err}
+            self._log(f"Failed to parse output: {ex}")
+            return {"parsed": None, "raw": str(out), "error": f"Failed to parse output: {ex}"}

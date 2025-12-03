@@ -4,28 +4,37 @@ from __future__ import annotations
 
 import json
 import threading
-from typing import Optional
+from typing import Any, Dict, Optional
 
 try:
     import tkinter as tk
     from tkinter import ttk, messagebox
-except Exception:  # pragma: no cover
-    tk = None
-    ttk = None
-    messagebox = None
+except ImportError:
+    tk = None  # type: ignore[assignment]
+    ttk = None  # type: ignore[assignment]
+    messagebox = None  # type: ignore[assignment]
 
 try:
     from .hotkeys import HotkeyWatcher
-except Exception:
-    HotkeyWatcher = None
+except ImportError:
+    HotkeyWatcher = None  # type: ignore[assignment,misc]
 
-from .automator import MacAutomator, HAVE_QUARTZ
+from .automator import MacAutomator, quartz_available
 from .constants import (
     WINDOW_DEFAULT_WIDTH,
     WINDOW_DEFAULT_HEIGHT,
     WINDOW_MIN_WIDTH,
     WINDOW_MIN_HEIGHT,
     DELAY_TURBO_MS,
+    TELEPORT_BACK_COMMAND,
+    AI_MODEL_OPTIONS,
+    AI_DEFAULT_MODEL,
+    AIMode,
+    ChatKey,
+    DEFAULT_LOG_PATH,
+    UI_DELAY_MIN_MS,
+    UI_DELAY_MAX_MS,
+    UI_DELAY_INCREMENT,
 )
 from .logger import Logger
 from .settings import Settings
@@ -42,12 +51,10 @@ class App:
 
         self.stop_event = threading.Event()
         self.automator = MacAutomator(status_cb=self._set_status, stop_event=self.stop_event)
-        self.hotkeys: Optional[HotkeyWatcher] = None
+        self.hotkeys = None
 
-        # UI Elements
         self._build_widgets()
 
-        # Defaults
         self.chat_key_var.set("t")
         self.delay_var.set(str(DELAY_TURBO_MS))
         self.escape_var.set(True)
@@ -61,24 +68,19 @@ class App:
         nb = ttk.Notebook(outer)
         nb.pack(fill=tk.BOTH, expand=True)
 
-        # Commands tab
         self.tab_commands = ttk.Frame(nb)
         nb.add(self.tab_commands, text="Commands")
         self._build_commands_tab(self.tab_commands, pad)
 
-        # AI tab
         self.tab_ai = ttk.Frame(nb)
         nb.add(self.tab_ai, text="AI")
         self._build_ai_tab(self.tab_ai, pad)
 
-        # Status
-        self.status_var = tk.StringVar(value="Ready. The app will request Accessibility permissions on first use.")
+        self.status_var = tk.StringVar(value="Ready.")
         status = ttk.Label(outer, textvariable=self.status_var, anchor=tk.W)
         status.pack(fill=tk.X, pady=(pad, 0))
 
     def _build_commands_tab(self, frm: ttk.Frame, pad: int) -> None:
-        """Build the Commands tab UI."""
-        # Options
         opt = ttk.LabelFrame(frm, text="Options")
         opt.pack(fill=tk.X, padx=0, pady=(0, pad))
 
@@ -92,28 +94,32 @@ class App:
 
         self.delay_var = tk.StringVar()
         ttk.Label(row1, text="Delay (ms):").pack(side=tk.LEFT, padx=(16, 4))
-        self.delay_entry = ttk.Spinbox(row1, from_=30, to=1000, increment=5, textvariable=self.delay_var, width=6)
+        self.delay_entry = ttk.Spinbox(
+            row1,
+            from_=UI_DELAY_MIN_MS,
+            to=UI_DELAY_MAX_MS,
+            increment=UI_DELAY_INCREMENT,
+            textvariable=self.delay_var,
+            width=6,
+        )
         self.delay_entry.pack(side=tk.LEFT)
 
         self.escape_var = tk.BooleanVar(value=True)
         ttk.Checkbutton(row1, text="Press Esc to resume first", variable=self.escape_var).pack(side=tk.LEFT, padx=(16, 4))
 
-        # Simplified: only Quartz toggle in the second row
         row2 = ttk.Frame(opt)
         row2.pack(fill=tk.X, padx=0, pady=(2, pad // 2))
 
         self.quartz_var = tk.BooleanVar(value=False)
-        label = "Quartz inject (fast)" + ("" if HAVE_QUARTZ else " (unavailable)")
-        ttk.Checkbutton(row2, text=label, variable=self.quartz_var).pack(side=tk.LEFT, padx=(pad, 8))
+        quartz_text = "Quartz inject (fast)" + ("" if quartz_available() else " (unavailable)")
+        ttk.Checkbutton(row2, text=quartz_text, variable=self.quartz_var).pack(side=tk.LEFT, padx=(pad, 8))
 
-        # Text area
         txt_frame = ttk.LabelFrame(frm, text="Commands (one per line; blank/# lines ignored)")
         txt_frame.pack(fill=tk.BOTH, expand=True, pady=(0, pad))
 
         self.text = tk.Text(txt_frame, wrap=tk.NONE, undo=True)
         self.text.pack(fill=tk.BOTH, expand=True)
 
-        # Buttons
         btns = ttk.Frame(frm)
         btns.pack(fill=tk.X)
         self.run_btn = ttk.Button(btns, text="Run", command=self.on_run)
@@ -124,30 +130,23 @@ class App:
         self.back_btn.pack(side=tk.LEFT, padx=(8, 0))
 
     def _build_ai_tab(self, frm: ttk.Frame, pad: int) -> None:
-        """Build the AI tab UI."""
         try:
             from .ai_chat import AIChatController
-        except Exception:
+        except ImportError:
             AIChatController = None
 
-        # Top controls
         top = ttk.Frame(frm)
         top.pack(fill=tk.X, pady=(0, pad))
 
-        self.ai_mode = tk.StringVar(value="create")
+        self.ai_mode = tk.StringVar(value=AIMode.CREATE.value)
         ttk.Label(top, text="Mode:").pack(side=tk.LEFT, padx=(pad, 4))
-        ttk.Radiobutton(top, text="Create", variable=self.ai_mode, value="create").pack(side=tk.LEFT)
-        ttk.Radiobutton(top, text="Debug", variable=self.ai_mode, value="debug").pack(side=tk.LEFT, padx=(4, 0))
+        ttk.Radiobutton(top, text="Create", variable=self.ai_mode, value=AIMode.CREATE.value).pack(side=tk.LEFT)
+        ttk.Radiobutton(top, text="Debug", variable=self.ai_mode, value=AIMode.DEBUG.value).pack(side=tk.LEFT, padx=(4, 0))
 
         ttk.Label(top, text="Model:").pack(side=tk.LEFT, padx=(16, 4))
-        self.ai_model = tk.StringVar(value="openrouter/openai/gpt-4o-mini")
+        self.ai_model = tk.StringVar(value=AI_DEFAULT_MODEL)
         self.ai_model_box = ttk.Combobox(top, textvariable=self.ai_model, width=40)
-        self.ai_model_box["values"] = (
-            "openrouter/openai/gpt-4o-mini",
-            "openrouter/openai/gpt-4o",
-            "openrouter/meta-llama/llama-3.1-70b-instruct",
-            "openrouter/mistralai/mistral-large",
-        )
+        self.ai_model_box["values"] = AI_MODEL_OPTIONS
         self.ai_model_box.pack(side=tk.LEFT)
 
         self.ai_require_params = tk.BooleanVar(value=True)
@@ -156,7 +155,6 @@ class App:
         self.ai_attach_log = tk.BooleanVar(value=True)
         ttk.Checkbutton(top, text="Attach log.txt tail (debug)", variable=self.ai_attach_log).pack(side=tk.LEFT, padx=(12, 4))
 
-        # Middle: split chat/result
         pw = ttk.PanedWindow(frm, orient=tk.HORIZONTAL)
         pw.pack(fill=tk.BOTH, expand=True)
 
@@ -191,12 +189,9 @@ class App:
         self.ai_reset_btn = ttk.Button(actions, text="Reset Conversation", command=self.on_ai_reset)
         self.ai_reset_btn.pack(side=tk.LEFT, padx=(8, 0))
 
-        # Controller
-        self.ai_controller = None
-        if AIChatController is not None:
-            self.ai_controller = AIChatController(logger=getattr(self, "logger", None))
-        self.ai_last_parsed: Optional[dict] = None
-        self.ai_last_mode: Optional[str] = None
+        self.ai_controller = AIChatController() if AIChatController else None
+        self.ai_last_parsed = None
+        self.ai_last_mode = None
 
     def _set_status(self, msg: str) -> None:
         """Thread-safe status update."""
@@ -206,73 +201,72 @@ class App:
 
     def on_run(self) -> None:
         """Handle Run button click."""
-        try:
-            delay = int(self.delay_var.get())
-        except ValueError:
-            messagebox.showerror("Invalid delay", "Delay must be an integer (ms).")
+        delay = self._parse_delay()
+        if delay is None:
             return
 
-        settings = Settings(
+        settings = Settings.for_run(
             chat_key=self.chat_key_var.get(),
             delay_ms=delay,
             press_escape_first=self.escape_var.get(),
-            type_instead_of_paste=True,
-            paste_repeats=1,
-            force_ascii_layout=True,
-            typing_segment_delay_ms=0,
-            turbo_mode=True,
-            use_quartz_injection=self.quartz_var.get() and HAVE_QUARTZ,
+            use_quartz_injection=self.quartz_var.get() and quartz_available(),
         )
 
-        # Enforce turbo overrides at run time for consistency
-        if settings.turbo_mode:
-            settings.delay_ms = min(settings.delay_ms, DELAY_TURBO_MS)
-            settings.typing_segment_delay_ms = 0
-
-        raw = self.text.get("1.0", tk.END)
-        lines = raw.splitlines()
+        lines = self.text.get("1.0", tk.END).splitlines()
         if not any(ln.strip() for ln in lines):
             messagebox.showinfo("Nothing to run", "Paste some commands first.")
             return
 
+        self._start_command_run(lines, settings, teleport_back=True)
+
+    def _parse_delay(self) -> Optional[int]:
+        """Parse delay from UI, showing error on failure."""
+        try:
+            return int(self.delay_var.get())
+        except ValueError:
+            messagebox.showerror("Invalid delay", "Delay must be an integer (ms).")
+            return None
+
+    def _start_command_run(
+        self,
+        lines: list[str],
+        settings: Settings,
+        teleport_back: bool = False,
+    ) -> None:
+        """Start a command run in a background thread.
+
+        Args:
+            lines: Commands to execute
+            settings: Run settings
+            teleport_back: Whether to teleport back after completion
+        """
         self.run_btn.config(state=tk.DISABLED)
         self.stop_btn.config(state=tk.NORMAL)
         self.stop_event.clear()
 
-        # Prepare logger (overwrite log.txt on each run)
-        logger = Logger("log.txt")
+        logger = Logger(DEFAULT_LOG_PATH)
         self.automator.logger = logger
 
-        # Start global hotkey watcher (Space+Esc stops)
-        try:
-            if HotkeyWatcher is not None:
-                self.hotkeys = HotkeyWatcher(self.stop_event, logger=logger)
-                self.hotkeys.start()
-        except Exception:
-            pass
+        if HotkeyWatcher:
+            self.hotkeys = HotkeyWatcher(self.stop_event, logger=logger)
+            self.hotkeys.start()
 
         def worker() -> None:
             try:
                 self.automator.run_commands(lines, settings)
-                # Auto-teleport back 75 blocks when finished
-                try:
-                    self.automator.send_quick_command("/tp @s ^ ^ ^-75", settings)
-                except Exception:
-                    pass
+                if teleport_back:
+                    self.automator.send_quick_command(TELEPORT_BACK_COMMAND, settings)
             finally:
-                self.root.after(0, lambda: self.run_btn.config(state=tk.NORMAL))
-                self.root.after(0, lambda: self.stop_btn.config(state=tk.DISABLED))
-                try:
-                    logger.close()
-                except Exception:
-                    pass
-                try:
-                    if self.hotkeys:
-                        self.hotkeys.stop()
-                except Exception:
-                    pass
+                self.root.after(0, self._enable_run_btn)
+                logger.close()
+                if self.hotkeys:
+                    self.hotkeys.stop()
 
         threading.Thread(target=worker, daemon=True).start()
+
+    def _enable_run_btn(self) -> None:
+        self.run_btn.config(state=tk.NORMAL)
+        self.stop_btn.config(state=tk.DISABLED)
 
     def on_stop(self) -> None:
         """Handle Stop button click."""
@@ -280,49 +274,17 @@ class App:
         self._set_status("Stopping…")
 
     def on_back_75(self) -> None:
-        """Handle Back 75 button click - teleport 75 blocks backward."""
-        try:
-            delay = int(self.delay_var.get())
-        except ValueError:
-            delay = DELAY_TURBO_MS
+        """Handle Back 75 button click - quick teleport backwards."""
+        delay = self._parse_delay() or DELAY_TURBO_MS
 
-        settings = Settings(
+        settings = Settings.for_quick_command(
             chat_key=self.chat_key_var.get(),
             delay_ms=delay,
             press_escape_first=self.escape_var.get(),
-            type_instead_of_paste=True,
-            paste_repeats=1,
-            force_ascii_layout=True,
-            typing_segment_delay_ms=0,
-            turbo_mode=True,
-            ultra_mode=True,
-            use_quartz_injection=False,
         )
 
-        # Use local coordinates to move back along look direction
-        lines = ["/tp @s ^ ^ ^-75"]
+        self._start_command_run([TELEPORT_BACK_COMMAND], settings, teleport_back=False)
 
-        self.run_btn.config(state=tk.DISABLED)
-        self.stop_btn.config(state=tk.NORMAL)
-        self.stop_event.clear()
-
-        logger = Logger("log.txt")
-        self.automator.logger = logger
-
-        def worker() -> None:
-            try:
-                self.automator.run_commands(lines, settings)
-            finally:
-                self.root.after(0, lambda: self.run_btn.config(state=tk.NORMAL))
-                self.root.after(0, lambda: self.stop_btn.config(state=tk.DISABLED))
-                try:
-                    logger.close()
-                except Exception:
-                    pass
-
-        threading.Thread(target=worker, daemon=True).start()
-
-    # ===== AI Tab handlers =====
     def _ai_append_transcript(self, who: str, text: str) -> None:
         """Append a message to the AI chat transcript."""
         self.ai_transcript.configure(state=tk.NORMAL)
@@ -330,7 +292,7 @@ class App:
         self.ai_transcript.see(tk.END)
         self.ai_transcript.configure(state=tk.DISABLED)
 
-    def _ai_set_result(self, obj: Optional[dict], raw: Optional[str], error: Optional[str]) -> None:
+    def _ai_set_result(self, obj: Optional[Dict[str, Any]], raw: Optional[str], error: Optional[str]) -> None:
         """Set the AI result display."""
         self.ai_result.configure(state=tk.NORMAL)
         self.ai_result.delete("1.0", tk.END)
@@ -340,8 +302,12 @@ class App:
             self.ai_result.insert(tk.END, json.dumps(obj or {}, indent=2, ensure_ascii=False))
         self.ai_result.configure(state=tk.DISABLED)
 
-    def _get_ai_config(self):
-        """Get the current AI configuration from UI state."""
+    def _get_ai_config(self) -> Any:
+        """Get the current AI configuration from UI state.
+
+        Returns:
+            AIConfig instance with current UI settings
+        """
         from .ai_chat import AIConfig
 
         return AIConfig(
@@ -368,13 +334,14 @@ class App:
         self.ai_apply_btn.config(state=tk.DISABLED)
         self.ai_apply_run_btn.config(state=tk.DISABLED)
 
-        mode = self.ai_mode.get()
+        mode_str = self.ai_mode.get()
+        mode = AIMode.from_str(mode_str)
         self.ai_last_mode = mode
         cfg = self._get_ai_config()
 
         def worker() -> None:
             try:
-                out = self.ai_controller.send(mode=mode, cfg=cfg, user_message=msg)
+                out = self.ai_controller.send(mode=mode_str, cfg=cfg, user_message=msg)
             except Exception as e:
                 out = {"parsed": None, "raw": "", "error": str(e)}
             parsed, raw, err = out.get("parsed"), out.get("raw"), out.get("error")
@@ -395,12 +362,13 @@ class App:
         """Apply AI-generated commands to the command editor."""
         if not self.ai_last_parsed:
             return
-        if self.ai_last_mode == "create":
+
+        # Get commands based on mode
+        if self.ai_last_mode == AIMode.CREATE:
             commands = self.ai_last_parsed.get("commands", [])
-            text = "\n".join(commands) + ("\n" if commands else "")
         else:
             commands = self.ai_last_parsed.get("corrected_commands", [])
-            text = "\n".join(commands) + ("\n" if commands else "")
+        text = "\n".join(commands) + ("\n" if commands else "")
 
         # Replace content in commands editor
         self.text.delete("1.0", tk.END)
@@ -408,7 +376,7 @@ class App:
 
         # Apply overrides if present
         chat_key = self.ai_last_parsed.get("chat_key") if self.ai_last_parsed else None
-        if chat_key in {"t", "/"}:
+        if chat_key in {ChatKey.T.value, ChatKey.SLASH.value}:
             self.chat_key_var.set(chat_key)
         if self.ai_last_parsed and isinstance(self.ai_last_parsed.get("delay_ms"), int):
             self.delay_var.set(str(self.ai_last_parsed.get("delay_ms")))
@@ -419,13 +387,22 @@ class App:
         self.on_run()
 
     def on_ai_reset(self) -> None:
-        """Reset the AI conversation."""
+        """Reset the AI conversation and clear state."""
+        # Clear UI
         self.ai_transcript.configure(state=tk.NORMAL)
         self.ai_transcript.delete("1.0", tk.END)
         self.ai_transcript.configure(state=tk.DISABLED)
         self.ai_result.configure(state=tk.NORMAL)
         self.ai_result.delete("1.0", tk.END)
         self.ai_result.configure(state=tk.DISABLED)
+
+        # Clear state to prevent stale data
+        self.ai_last_parsed = None
+        self.ai_last_mode = None
+
+        # Disable apply buttons since there's nothing to apply
+        self.ai_apply_btn.config(state=tk.DISABLED)
+        self.ai_apply_run_btn.config(state=tk.DISABLED)
 
 
 def main() -> None:

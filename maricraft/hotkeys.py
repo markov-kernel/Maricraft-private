@@ -9,6 +9,7 @@ from typing import Any, Optional
 from .constants import KEY_SPACE, KEY_ESCAPE
 from .logger import LoggerProtocol
 
+_HOTKEYS_IMPORT_ERROR: Optional[str] = None
 try:
     from Quartz import (
         CGEventTapCreate,
@@ -26,9 +27,15 @@ try:
         CFRunLoopGetCurrent,
     )
     HAVE_HOTKEYS = True
-except Exception:
+except ImportError as e:
     HAVE_HOTKEYS = False
+    _HOTKEYS_IMPORT_ERROR = f"ImportError: {e}"
     # Define stubs for type checking
+    kCGEventKeyDown = None
+    kCGKeyboardEventKeycode = None
+except Exception as e:
+    HAVE_HOTKEYS = False
+    _HOTKEYS_IMPORT_ERROR = f"{type(e).__name__}: {e}"
     kCGEventKeyDown = None
     kCGKeyboardEventKeycode = None
 
@@ -68,13 +75,18 @@ class HotkeyWatcher:
         try:
             if self.logger:
                 self.logger.log(msg)
-        except Exception:
-            pass
+        except Exception as e:
+            # Fallback: print to stderr if logging fails
+            import sys
+            print(f"Hotkeys log error: {e}", file=sys.stderr)
 
     def start(self) -> None:
         """Start the hotkey watcher thread."""
         if not HAVE_HOTKEYS:
-            self.log("Hotkeys: Quartz not available; global stop disabled")
+            msg = "Hotkeys: Quartz not available; global stop disabled"
+            if _HOTKEYS_IMPORT_ERROR:
+                msg += f" ({_HOTKEYS_IMPORT_ERROR})"
+            self.log(msg)
             return
         if self._thread and self._thread.is_alive():
             return
@@ -88,8 +100,8 @@ class HotkeyWatcher:
         try:
             if self._runloop is not None:
                 CFRunLoopStop(self._runloop)
-        except Exception:
-            pass
+        except Exception as e:
+            self.log(f"Error stopping runloop: {e}")
 
     # === internals ===
     def _tap_callback(self, proxy: Any, etype: int, event: Any, refcon: Any) -> Any:
@@ -108,8 +120,9 @@ class HotkeyWatcher:
                     if (now - self._last_space) * 1000.0 <= self.window_ms:
                         self.log("Hotkeys: Space+Esc detected -> stop")
                         self.stop_event.set()
-        except Exception:
-            pass
+        except Exception as e:
+            # Log but don't crash - this is a callback from the system
+            self.log(f"Hotkeys callback error: {e}")
         return event
 
     def _run(self) -> None:
