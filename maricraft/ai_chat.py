@@ -1,14 +1,21 @@
-import os
+"""AI chat assistant for Minecraft command generation and debugging."""
+
+from __future__ import annotations
+
 import json
+import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Any, Dict, Literal, Optional
 
-from pydantic import BaseModel, Field, confloat, conint
+from pydantic import BaseModel, confloat, conint
+
+from .logger import LoggerProtocol
 
 
 @dataclass
 class AIConfig:
+    """Configuration for AI chat operations."""
     model: str
     base_url: str = "https://openrouter.ai/api/v1"
     require_parameters: bool = True
@@ -18,43 +25,36 @@ class AIConfig:
     log_tail_lines: int = 250
 
 
-def _load_env():
+Mode = Literal["create", "debug"]
+
+
+def _load_env() -> None:
+    """Load environment variables from .env file if available."""
     try:
         from dotenv import load_dotenv
-
         load_dotenv()
     except Exception:
         pass
 
 
 def _get_api_key() -> Optional[str]:
+    """Get the OpenRouter API key from environment."""
     _load_env()
     return os.getenv("OPENROUTER_API_KEY")
 
 
-def _provider_prefs(require_parameters: bool):
-    prefs = {"require_parameters": bool(require_parameters)}
-    return prefs
-
-
-def _response_format(schema_name: str, schema: dict) -> dict:
-    return {
-        "type": "json_schema",
-        "json_schema": {
-            "name": schema_name,
-            "strict": True,
-            "schema": schema,
-        },
-    }
+def _provider_prefs(require_parameters: bool) -> Dict[str, bool]:
+    """Build provider preferences dict for OpenRouter."""
+    return {"require_parameters": bool(require_parameters)}
 
 
 def _tail_file(path: Path, max_lines: int = 250) -> str:
+    """Read the last N lines from a file efficiently."""
     try:
         if not path.exists():
             return ""
-        # Efficient line tail
+        # Efficient line tail: read last ~64KB chunk
         with path.open("rb") as f:
-            # Read last ~64KB chunk and tail lines from it
             f.seek(0, os.SEEK_END)
             size = f.tell()
             read_size = min(65536, size)
@@ -66,82 +66,32 @@ def _tail_file(path: Path, max_lines: int = 250) -> str:
         return ""
 
 
-def _schema_create() -> tuple[str, dict]:
-    return (
-        "minecraft_command_plan",
-        {
-            "type": "object",
-            "properties": {
-                "commands": {
-                    "type": "array",
-                    "items": {"type": "string"},
-                    "minItems": 1,
-                    "description": "One command per line, ready for Minecraft chat.",
-                },
-                "explanation": {"type": "string"},
-                "chat_key": {"type": "string", "enum": ["t", "/"]},
-                "delay_ms": {
-                    "type": "integer",
-                    "minimum": 50,
-                    "maximum": 2000,
-                    "default": 150,
-                },
-                "tags": {"type": "array", "items": {"type": "string"}, "uniqueItems": True},
-            },
-            "required": ["commands"],
-            "additionalProperties": False,
-        },
-    )
-
-
-def _schema_debug() -> tuple[str, dict]:
-    return (
-        "minecraft_command_fix",
-        {
-            "type": "object",
-            "properties": {
-                "corrected_commands": {
-                    "type": "array",
-                    "items": {"type": "string"},
-                    "minItems": 1,
-                },
-                "explanation": {"type": "string"},
-                "confidence": {"type": "number", "minimum": 0, "maximum": 1},
-                "chat_key": {"type": "string", "enum": ["t", "/"]},
-                "delay_ms": {"type": "integer", "minimum": 50, "maximum": 2000},
-                "follow_up": {"type": "array", "items": {"type": "string"}},
-            },
-            "required": ["corrected_commands"],
-            "additionalProperties": False,
-        },
-    )
-
-
-Mode = Literal["create", "debug"]
-
-
 class AIChatController:
     """High-level interface for AI chat operations with structured outputs.
 
     Uses OpenAI Agents SDK with LiteLLM + OpenRouter under the hood.
     """
 
-    def __init__(self, logger=None):
+    def __init__(self, logger: Optional[LoggerProtocol] = None) -> None:
         self.logger = logger
-        self._agent = None
-        self._session = None
-        self._mode: Mode | None = None
-        self._model_id: str | None = None
+        self._agent: Any = None
+        self._session: Any = None
+        self._mode: Optional[Mode] = None
+        self._model_id: Optional[str] = None
         self._api_key: Optional[str] = None
+        self._model_settings: Any = None
+        self._Runner: Any = None
 
-    def _log(self, msg: str):
+    def _log(self, msg: str) -> None:
+        """Log a message if logger is available."""
         try:
             if self.logger is not None:
                 self.logger.log(msg)
         except Exception:
             pass
 
-    def _ensure_agent(self, mode: Mode, cfg: AIConfig):
+    def _ensure_agent(self, mode: Mode, cfg: AIConfig) -> None:
+        """Initialize or reinitialize the AI agent if needed."""
         if self._agent and self._mode == mode and self._model_id == cfg.model:
             return
 
@@ -162,7 +112,7 @@ class AIChatController:
         self._session = SQLiteSession(session_id)
 
         # Attribution headers (optional but recommended by OpenRouter)
-        extra_headers = {}
+        extra_headers: Dict[str, str] = {}
         if os.getenv("OR_SITE_URL"):
             extra_headers["HTTP-Referer"] = os.getenv("OR_SITE_URL")
         if os.getenv("OR_APP_NAME"):
@@ -171,11 +121,7 @@ class AIChatController:
         self._model_settings = ModelSettings(
             temperature=cfg.temperature,
             extra_args={
-                # OpenRouter structured outputs
-                # Will be updated per-call with schema
-                # Provider routing
                 "provider": _provider_prefs(cfg.require_parameters),
-                # Optional attribution
                 **({"extra_headers": extra_headers} if extra_headers else {}),
             },
         )
@@ -214,14 +160,20 @@ class AIChatController:
             output_type=CreateOutput if mode == "create" else DebugOutput,
         )
 
-        self._Runner = None
         # Lazy import Runner to keep surface small
         from agents import Runner as _Runner
-
         self._Runner = _Runner
 
-    def _build_prompt(self, mode: Mode, user_message: str, attach_log: bool, log_path: str, tail_lines: int) -> str:
-        base = []
+    def _build_prompt(
+        self,
+        mode: Mode,
+        user_message: str,
+        attach_log: bool,
+        log_path: str,
+        tail_lines: int,
+    ) -> str:
+        """Build the prompt for the AI based on mode and context."""
+        base: list[str] = []
         if mode == "create":
             base.append(
                 "Task: Generate Minecraft chat commands for the user's goal. "
@@ -233,29 +185,27 @@ class AIChatController:
                 "propose corrected commands."
             )
         base.append(f"User: {user_message}")
-        if mode == "debug":
-            # Let the user paste the failing command into the message; we also attach logs below
-            if attach_log:
-                excerpt = _tail_file(Path(log_path), max_lines=tail_lines)
-                if excerpt:
-                    base.append("Recent log excerpt:\n" + excerpt)
+        if mode == "debug" and attach_log:
+            excerpt = _tail_file(Path(log_path), max_lines=tail_lines)
+            if excerpt:
+                base.append("Recent log excerpt:\n" + excerpt)
         return "\n\n".join(base)
 
-    def _schema_for_mode(self, mode: Mode) -> tuple[str, dict]:
-        return _schema_create() if mode == "create" else _schema_debug()
+    def send(self, mode: Mode, cfg: AIConfig, user_message: str) -> Dict[str, Any]:
+        """Send a message to the AI and return the response.
 
-    def send(self, mode: Mode, cfg: AIConfig, user_message: str) -> dict:
-        """Send a message and return a dict:
-        {
-          "parsed": dict | None,
-          "raw": str,
-          "error": str | None,
-        }
+        Args:
+            mode: Either "create" for new commands or "debug" for fixing commands
+            cfg: AI configuration settings
+            user_message: The user's message/request
+
+        Returns:
+            Dict with keys:
+                - parsed: Parsed structured output as dict, or None
+                - raw: Raw string response
+                - error: Error message if any, or None
         """
-
         self._ensure_agent(mode, cfg)
-        # Rely on Agents SDK output_type to enable structured outputs.
-        # Provider routing is already set via model_settings.extra_args.
 
         prompt = self._build_prompt(
             mode,
@@ -273,15 +223,15 @@ class AIChatController:
                 self._agent,
                 prompt,
                 session=self._session,
-                # The SDK's Runner uses the agent's model_settings, but many versions allow
-                # passing a per-call override via Agent.model_settings. To keep compatibility,
-                # we temporarily swap the settings.
             )
         except Exception as e:
             return {"parsed": None, "raw": "", "error": str(e)}
 
         out = getattr(result, "final_output", None)
-        parsed, raw, err = None, None, None
+        parsed: Optional[Dict[str, Any]] = None
+        raw: Optional[str] = None
+        err: Optional[str] = None
+
         try:
             if isinstance(out, str):
                 raw = out
@@ -297,7 +247,9 @@ class AIChatController:
                 parsed = None
         except Exception as ex:
             err = f"Failed to parse output: {ex}"
+
         if err:
             self._log(f"AI response (raw): {str(out)[:4000]}")
             self._log(err)
+
         return {"parsed": parsed, "raw": raw, "error": err}

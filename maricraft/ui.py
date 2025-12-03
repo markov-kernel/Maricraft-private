@@ -1,10 +1,10 @@
-import subprocess
-import threading
-import time
-import shlex
+"""Tkinter UI for Maricraft chat macro runner."""
+
+from __future__ import annotations
+
 import json
-import re
-from dataclasses import dataclass
+import threading
+from typing import Optional
 
 try:
     import tkinter as tk
@@ -14,566 +14,46 @@ except Exception:  # pragma: no cover
     ttk = None
     messagebox = None
 
-# Optional Quartz injection (fast, layout-agnostic typing)
 try:
-    from Quartz import (
-        CGEventCreateKeyboardEvent,
-        CGEventKeyboardSetUnicodeString,
-        CGEventPost,
-        kCGHIDEventTap,
-    )
-    HAVE_QUARTZ = True
+    from .hotkeys import HotkeyWatcher
 except Exception:
-    HAVE_QUARTZ = False
+    HotkeyWatcher = None
 
-
-@dataclass
-class Settings:
-    chat_key: str = "t"  # 't' or '/'
-    delay_ms: int = 40
-    press_escape_first: bool = True
-    type_instead_of_paste: bool = True
-    paste_repeats: int = 2
-    force_ascii_layout: bool = True
-    typing_segment_delay_ms: int = 0
-    use_quartz_injection: bool = False
-    turbo_mode: bool = True
-    ultra_mode: bool = True
-    turbo_mode: bool = False
-
-
-class MacAutomator:
-    def __init__(self, status_cb=None, stop_event: threading.Event | None = None, logger=None):
-        self.status_cb = status_cb or (lambda _msg: None)
-        self.stop_event = stop_event or threading.Event()
-        self.logger = logger
-
-    def _osascript(self, script: str) -> subprocess.CompletedProcess:
-        proc = subprocess.run(
-            ["osascript", "-"],
-            input=script.encode("utf-8"),
-            capture_output=True,
-            check=False,
-        )
-        if getattr(proc, "returncode", 0) != 0:
-            self._log(
-                f"osascript error rc={proc.returncode} stdout={proc.stdout.decode('utf-8', 'ignore').strip()} stderr={proc.stderr.decode('utf-8', 'ignore').strip()}"
-            )
-        return proc
-
-    def _status(self, msg: str):
-        self._log(msg)
-        self.status_cb(msg)
-
-    def _log(self, msg: str):
-        try:
-            if self.logger is not None:
-                self.logger.log(msg)
-        except Exception:
-            pass
-
-    def _sleep(self, ms: int):
-        time.sleep(max(ms, 0) / 1000.0)
-
-    # ===== Input source helpers (for reliable typing on non-US layouts) =====
-    def _get_input_source_name(self) -> str:
-        script = r'''
-        try
-            tell application "System Events"
-                set n to name of current input source
-            end tell
-            return n
-        on error
-            return ""
-        end try
-        '''
-        proc = self._osascript(script)
-        try:
-            return (proc.stdout or b"").decode("utf-8", "ignore").strip()
-        except Exception:
-            return ""
-
-    def _set_input_source_by_name(self, name: str) -> bool:
-        # Tries to switch the active keyboard layout by its display name.
-        script = rf'''
-        try
-            tell application "System Events"
-                set target to first input source whose name is "{name}"
-                set current input source to target
-                return name of current input source
-            end tell
-        on error
-            return ""
-        end try
-        '''
-        proc = self._osascript(script)
-        out = (proc.stdout or b"").decode("utf-8", "ignore").strip()
-        return out == name
-
-    def _maybe_force_ascii_input(self) -> tuple[bool, str]:
-        # Attempt to switch to an ASCII-friendly layout so characters like '~' and '-' are literal.
-        # Try common names: "ABC" and "U.S.". Returns (changed, previous_name)
-        prev = self._get_input_source_name()
-        for candidate in ("ABC", "U.S.", "ABC - QWERTZ", "ABC QWERTZ"):
-            if self._set_input_source_by_name(candidate):
-                self._log(f"Switched input source to '{candidate}' from '{prev}'")
-                return True, prev
-        return False, prev
-
-    def _restore_input_source(self, prev: str):
-        if not prev:
-            return
-        ok = self._set_input_source_by_name(prev)
-        self._log(f"Restored input source to '{prev}' => {'ok' if ok else 'failed'}")
-
-    def _frontmost_process_name(self) -> str:
-        script = r'''
-        tell application "System Events"
-            set pname to name of first process whose frontmost is true
-        end tell
-        return pname
-        '''
-        proc = self._osascript(script)
-        try:
-            out = proc.stdout.decode("utf-8", "ignore").strip()
-            return out
-        except Exception:
-            return ""
-
-    def _frontmost_process_pid(self) -> int:
-        script = r'''
-        try
-            tell application "System Events"
-                set pidnum to unix id of first process whose frontmost is true
-            end tell
-            return pidnum as text
-        on error
-            return "0"
-        end try
-        '''
-        proc = self._osascript(script)
-        try:
-            return int((proc.stdout or b"0").decode("utf-8", "ignore").strip() or "0")
-        except Exception:
-            return 0
-
-    def focus_minecraft(self, attempts: int = 3, settle_ms: int = 100) -> bool:
-        # Bring the running Java game client to front (avoid launching the Launcher)
-        script = r'''
-        tell application "System Events"
-            try
-                set frontmost of process "java" to true
-                try
-                    tell process "java" to tell window 1 to perform action "AXRaise"
-                end try
-            end try
-            try
-                set frontmost of process "javaw" to true
-                try
-                    tell process "javaw" to tell window 1 to perform action "AXRaise"
-                end try
-            end try
-        end tell
-        '''
-
-        for i in range(max(1, attempts)):
-            self._osascript(script)
-            self._log(f"Focus attempt {i+1}/{attempts}: raised 'java/javaw'")
-            time.sleep(max(settle_ms, 0) / 1000.0)
-            front = (self._frontmost_process_name() or "").lower()
-            self._log(f"Frontmost after attempt {i+1}: '{front}'")
-            if front == "java" or front == "javaw" or "java" in front:
-                return True
-        return False
-
-    def key_escape(self):
-        script = 'tell application "System Events" to key code 53'
-        self._osascript(script)
-
-    def keystroke(self, text: str):
-        # Send literal characters robustly, handling embedded double quotes.
-        # AppleScript does not support escaping quotes inside string literals; use `keystroke quote`.
-        if '"' in text:
-            parts = text.split('"')
-            lines = ['tell application "System Events"']
-            for i, seg in enumerate(parts):
-                if seg:
-                    seg_esc = seg.replace("\\", "\\\\").replace("\n", " ")
-                    lines.append(f'    keystroke "{seg_esc}"')
-                if i < len(parts) - 1:
-                    lines.append('    keystroke quote')
-            lines.append('end tell')
-            script = "\n".join(lines)
-            self._osascript(script)
-        else:
-            seg_esc = text.replace("\\", "\\\\").replace("\n", " ")
-            script = f'tell application "System Events" to keystroke "{seg_esc}"'
-            self._osascript(script)
-
-    def _type_tilde(self):
-        # On many non-US layouts, '~' is a dead key: Option+n then Space.
-        # Some layouts require an extra Space to fully separate; we send Space twice
-        # and then Delete once to avoid leaving an extra space.
-        script = r'''
-        tell application "System Events"
-            key down option
-            key code 45 -- 'n'
-            key up option
-            key code 49 -- space (commit tilde)
-            key code 49 -- extra space to separate dead key
-            key code 51 -- delete the extra space
-        end tell
-        '''
-        self._osascript(script)
-        # Small settle to ensure the next character doesn't combine
-        self._sleep(20)
-
-    def type_line_safely(self, text: str, per_segment_delay_ms: int = 10):
-        # Type text but handle '~' explicitly with Option+n then Space to produce ASCII tilde
-        parts = text.split("~")
-        for i, seg in enumerate(parts):
-            if seg:
-                self.keystroke(seg)
-            if i < len(parts) - 1:
-                self._type_tilde()
-            if per_segment_delay_ms:
-                self._sleep(per_segment_delay_ms)
-
-    def keycode(self, code: int):
-        script = f'tell application "System Events" to key code {code}'
-        self._osascript(script)
-
-    def paste_from_clipboard(self):
-        # Try multiple variants of Cmd+V with small gaps to maximize compatibility across layouts
-        variants = [
-            'tell application "System Events" to key code 9 using {command down}',
-            'tell application "System Events" to keystroke "v" using {command down}',
-            r'''
-            tell application "System Events"
-                key down command
-                delay 0.02
-                key code 9 -- 'v'
-                delay 0.02
-                key up command
-            end tell
-            ''',
-        ]
-        for idx, script in enumerate(variants, start=1):
-            self._osascript(script)
-            self._sleep(35)
-
-    def poke_input(self):
-        # Type a space then delete; helps some clients accept subsequent paste reliably
-        script = r'''
-        tell application "System Events"
-            keystroke " "
-            key code 51 -- delete
-        end tell
-        '''
-        self._osascript(script)
-
-    def select_all(self):
-        script = 'tell application "System Events" to keystroke "a" using {command down}'
-        self._osascript(script)
-
-    def copy_selection(self):
-        script = 'tell application "System Events" to keystroke "c" using {command down}'
-        self._osascript(script)
-
-    def set_clipboard(self, text: str):
-        # Use pbcopy to avoid AppleScript string escaping limits
-        try:
-            subprocess.run(["pbcopy"], input=text.encode("utf-8"), check=False)
-        except Exception:
-            pass
-
-    def get_clipboard(self) -> str:
-        try:
-            out = subprocess.run(["pbpaste"], capture_output=True, check=False)
-            return out.stdout.decode("utf-8", errors="ignore")
-        except Exception:
-            return ""
-
-    def open_chat(self, chat_key: str):
-        if chat_key == "/":
-            self.keystroke("/")
-        else:
-            self.keystroke("t")
-
-    def press_enter(self):
-        # Return key
-        self.keycode(36)
-
-    def send_quick_command(self, line: str, settings: Settings):
-        # Minimal path: assumes game is already focused and unpaused
-        # Normalize carets, open chat, type, send
-        line_to_send = line
-        if settings.chat_key == "/" and line_to_send.startswith("/"):
-            line_to_send = line_to_send[1:]
-        line_to_send = self._normalize_carets(line_to_send)
-
-        self._status("Post-run: teleporting back 75…")
-        self.open_chat(settings.chat_key)
-        self._sleep(10 if settings.ultra_mode else max(60, settings.delay_ms // 2))
-        # Prefer keystroke typing (fast, safe)
-        if settings.force_ascii_layout:
-            self.keystroke(line_to_send)
-        else:
-            self.type_line_safely(line_to_send, per_segment_delay_ms=max(0, int(settings.typing_segment_delay_ms)))
-        self._sleep(10 if settings.ultra_mode else max(60, settings.delay_ms // 2))
-        self.press_enter()
-        self._status("Post-run teleport sent.")
-
-    def run_commands(self, commands: list[str], settings: Settings):
-        # Save original clipboard
-        original_clipboard = self.get_clipboard()
-        # Save original input source; possibly switch for typing mode
-        switched_layout = False
-        prev_layout = ""
-        try:
-            self._status("Bringing Minecraft to front…")
-            focused = self.focus_minecraft()
-            if not focused:
-                self._status("Could not focus Minecraft. Ensure Accessibility is enabled and the game window is visible, then try again.")
-                return
-            # Short settle after focusing
-            if settings.turbo_mode:
-                self._sleep(60)
-            else:
-                self._sleep(max(120, settings.delay_ms))
-
-            # If typing without Quartz, ensure ASCII-friendly layout to avoid dead keys
-            if (
-                settings.type_instead_of_paste
-                and not settings.use_quartz_injection
-                and settings.force_ascii_layout
-            ):
-                switched_layout, prev_layout = self._maybe_force_ascii_input()
-                self._sleep(120)
-
-            if settings.press_escape_first:
-                self._status("Resuming game (Esc)…")
-                self.key_escape()
-                # Minimal settle after Esc in ultra mode
-                if settings.ultra_mode:
-                    self._sleep(5)
-                else:
-                    self._sleep(120)
-
-            cleaned = [ln for ln in commands if ln.strip() and not ln.strip().startswith("#")]
-            for idx, line in enumerate(cleaned, start=1):
-                if self.stop_event.is_set():
-                    self._status("Stopped by user.")
-                    return
-
-                # If chat was opened with '/', avoid inserting a duplicate leading slash
-                line_to_send = line
-                if settings.chat_key == "/" and line_to_send.startswith("/"):
-                    line_to_send = line_to_send[1:]
-
-                # Preflight normalization: replace bare '^' with '^0'
-                norm_line = self._normalize_carets(line_to_send)
-                if norm_line != line_to_send:
-                    self._log(f"Normalized carets: '{line_to_send}' -> '{norm_line}'")
-                line_to_send = norm_line
-
-                # Default to safe typing; paste path remains available if user disables typing
-                use_typing = settings.type_instead_of_paste
-
-                self._status(f"{idx}/{len(cleaned)}: Open chat…")
-                self.open_chat(settings.chat_key)
-                # Allow chat field to appear and focus; skip nudge for typing path
-                if use_typing:
-                    if settings.ultra_mode:
-                        self._sleep(5)
-                    else:
-                        self._sleep(30 if settings.turbo_mode else max(80, settings.delay_ms // 2))
-                else:
-                    self._sleep(max(220, settings.delay_ms))
-                    self.poke_input()
-                    self._sleep(max(90, settings.delay_ms // 3))
-                mode_desc = "typed" if use_typing else "pasted"
-                self._status(f"{idx}/{len(cleaned)}: Input line ({mode_desc})…")
-                self._log(f"Command line: {line}")
-                line_start = time.monotonic()
-                if use_typing:
-                    # Use Quartz injection when available and enabled; fallback to keystroke typing
-                    injected = False
-                    if settings.use_quartz_injection and HAVE_QUARTZ:
-                        pid = self._frontmost_process_pid()
-                        injected = self.inject_text_quartz(line_to_send, target_pid=pid if pid > 0 else None)
-                        if injected:
-                            self._status(f"{idx}/{len(cleaned)}: Input line (injected)…")
-                            # Verify injection landed by copying field content
-                            expected_field = ("/" + line_to_send) if settings.chat_key == "/" else line_to_send
-                            sentinel = f"__MARICRAFT_SENTINEL__{int(time.time()*1000)}__"
-                            self.set_clipboard(sentinel)
-                            self._sleep(60)
-                            self.select_all()
-                            self._sleep(40)
-                            self.copy_selection()
-                            self._sleep(80)
-                            got = (self.get_clipboard() or "").strip().replace("\r", "")
-                            exp = expected_field.strip().replace("\r", "")
-                            if not got or got == sentinel or got != exp:
-                                self._log("Injection verify failed; falling back to keystroke typing")
-                                injected = False
-                            else:
-                                self._log("Injection verified OK")
-                        if not injected:
-                            self._log("Quartz injection failed; falling back to keystroke typing")
-                    if not injected:
-                        # Type the whole line; if ASCII layout is forced, avoid dead-key tilde routine
-                        if settings.force_ascii_layout:
-                            self.keystroke(line_to_send)
-                        else:
-                            self.type_line_safely(
-                                line_to_send, per_segment_delay_ms=max(0, int(settings.typing_segment_delay_ms))
-                            )
-                    if settings.ultra_mode:
-                        self._sleep(5)
-                    elif settings.turbo_mode:
-                        self._sleep(30)
-                    else:
-                        self._sleep(max(60, settings.delay_ms // 2))
-                else:
-                    self.set_clipboard(line_to_send)
-                    self._sleep(max(160, settings.delay_ms // 2))
-                    # Paste once or more depending on reliability preference
-                    reps = max(1, int(settings.paste_repeats))
-                    for i in range(reps):
-                        self.paste_from_clipboard()
-                        # Small gap between repeated pastes
-                        if i < reps - 1:
-                            self._sleep(max(120, settings.delay_ms // 3))
-                    self._sleep(max(120, settings.delay_ms // 2))
-
-                    # Verify pasted content to avoid empty-send on longer lines
-                    expected_field = ("/" + line_to_send) if settings.chat_key == "/" else line_to_send
-                    verified = False
-                    # Use a clipboard sentinel to detect copy failures
-                    sentinel = f"__MARICRAFT_SENTINEL__{int(time.time()*1000)}__"
-                    for attempt in range(3):
-                        # Set sentinel and then try to copy field contents
-                        self.set_clipboard(sentinel)
-                        self._sleep(80)
-                        self.select_all()
-                        self._sleep(70)
-                        self.copy_selection()
-                        self._sleep(110)
-                        got = self.get_clipboard()
-                        if not got or got == sentinel:
-                            self._log(f"Verify attempt {attempt+1}: copy failed (clipboard unchanged)")
-                        else:
-                            got_s = got.strip().replace("\r", "")
-                            exp_s = expected_field.strip().replace("\r", "")
-                            self._log(f"Verify attempt {attempt+1}: got_len={len(got_s)} match={got_s==exp_s}")
-                            if got_s == exp_s:
-                                verified = True
-                                break
-                        # Re-paste and try again with longer waits
-                        self.set_clipboard(line_to_send)
-                        self._sleep(120)
-                        self.paste_from_clipboard()
-                        self._sleep(200 + attempt * 100)
-                    if not verified:
-                        self._log("Paste verify failed; falling back to safe typing for this line")
-                        # Clear any accidental partial content
-                        self.poke_input()
-                        self._sleep(60)
-                        # Type with explicit handling for '~'
-                        self.type_line_safely(line_to_send, per_segment_delay_ms=12)
-                        self._sleep(max(140, settings.delay_ms // 2))
-
-                dur_ms = int((time.monotonic() - line_start) * 1000)
-                turbo_txt = " turbo" if settings.turbo_mode and use_typing else ""
-                self._status(f"{idx}/{len(cleaned)}: Send… (typed_ms={dur_ms}{turbo_txt})")
-                self.press_enter()
-
-                # Safety delay between lines
-                if settings.ultra_mode and use_typing:
-                    self._sleep(5)
-                elif settings.turbo_mode and use_typing:
-                    self._sleep(40)
-                else:
-                    self._sleep(max(60, settings.delay_ms))
-
-            self._status("Done.")
-        finally:
-            # Restore clipboard
-            self.set_clipboard(original_clipboard)
-            # Restore input source if changed
-            if switched_layout:
-                self._sleep(120)
-                self._restore_input_source(prev_layout)
-
-    def _normalize_carets(self, s: str) -> str:
-        """Normalize coordinate syntax to avoid common parse errors.
-
-        - Replace any bare caret '^' with '^0'.
-        - Replace any bare tilde '~' with '~0'.
-        - Remove explicit plus signs after '~' or '^' (e.g., '~+5' -> '~5', '^+2' -> '^2').
-        """
-        # 1) Caret must be followed by a number: '^' -> '^0'
-        s = re.sub(r"\^(?!-?\d)", "^0", s)
-        # 1b) Tilde may be bare, but normalize to '~0' to avoid parse edge cases
-        s = re.sub(r"~(?!-?\d)", "~0", s)
-        # 2) Remove explicit '+' after ~ or ^ (Minecraft doesn't accept '+')
-        s = re.sub(r"([~\^])\+(?=\d)", r"\1", s)
-        return s
-
-    def inject_text_quartz(self, text: str, target_pid: int | None = None) -> bool:
-        if not HAVE_QUARTZ:
-            return False
-        try:
-            # Chunk long strings to be safe with event size
-            chunk = 256
-            for i in range(0, len(text), chunk):
-                seg = text[i : i + chunk]
-                ev_down = CGEventCreateKeyboardEvent(None, 0, True)
-                CGEventKeyboardSetUnicodeString(ev_down, len(seg), seg)
-                try:
-                    from Quartz import CGEventPostToPid as _post_pid
-                except Exception:
-                    _post_pid = None
-                if target_pid and _post_pid:
-                    _post_pid(target_pid, ev_down)
-                else:
-                    CGEventPost(kCGHIDEventTap, ev_down)
-                ev_up = CGEventCreateKeyboardEvent(None, 0, False)
-                CGEventKeyboardSetUnicodeString(ev_up, len(seg), seg)
-                if target_pid and _post_pid:
-                    _post_pid(target_pid, ev_up)
-                else:
-                    CGEventPost(kCGHIDEventTap, ev_up)
-                # Small inter-chunk delay to avoid flooding
-                self._sleep(1)
-            return True
-        except Exception as e:
-            self._log(f"Quartz inject error: {e}")
-            return False
+from .automator import MacAutomator, HAVE_QUARTZ
+from .constants import (
+    WINDOW_DEFAULT_WIDTH,
+    WINDOW_DEFAULT_HEIGHT,
+    WINDOW_MIN_WIDTH,
+    WINDOW_MIN_HEIGHT,
+    DELAY_TURBO_MS,
+)
+from .logger import Logger
+from .settings import Settings
 
 
 class App:
-    def __init__(self, root: tk.Tk):
+    """Main Tkinter application for Maricraft."""
+
+    def __init__(self, root: tk.Tk) -> None:
         self.root = root
         self.root.title("Maricraft: Chat Macro Runner")
-        self.root.geometry("900x680")
-        self.root.minsize(800, 520)
+        self.root.geometry(f"{WINDOW_DEFAULT_WIDTH}x{WINDOW_DEFAULT_HEIGHT}")
+        self.root.minsize(WINDOW_MIN_WIDTH, WINDOW_MIN_HEIGHT)
 
         self.stop_event = threading.Event()
         self.automator = MacAutomator(status_cb=self._set_status, stop_event=self.stop_event)
-        self.hotkeys = None
+        self.hotkeys: Optional[HotkeyWatcher] = None
 
         # UI Elements
         self._build_widgets()
 
         # Defaults
         self.chat_key_var.set("t")
-        self.delay_var.set("40")
+        self.delay_var.set(str(DELAY_TURBO_MS))
         self.escape_var.set(True)
 
-    def _build_widgets(self):
+    def _build_widgets(self) -> None:
+        """Build all UI widgets."""
         pad = 8
         outer = ttk.Frame(self.root)
         outer.pack(fill=tk.BOTH, expand=True, padx=pad, pady=pad)
@@ -596,13 +76,14 @@ class App:
         status = ttk.Label(outer, textvariable=self.status_var, anchor=tk.W)
         status.pack(fill=tk.X, pady=(pad, 0))
 
-    def _build_commands_tab(self, frm: ttk.Frame, pad: int):
+    def _build_commands_tab(self, frm: ttk.Frame, pad: int) -> None:
+        """Build the Commands tab UI."""
         # Options
         opt = ttk.LabelFrame(frm, text="Options")
         opt.pack(fill=tk.X, padx=0, pady=(0, pad))
 
         row1 = ttk.Frame(opt)
-        row1.pack(fill=tk.X, padx=0, pady=(pad//2, 2))
+        row1.pack(fill=tk.X, padx=0, pady=(pad // 2, 2))
 
         self.chat_key_var = tk.StringVar()
         ttk.Label(row1, text="Chat key:").pack(side=tk.LEFT, padx=(pad, 4))
@@ -619,7 +100,7 @@ class App:
 
         # Simplified: only Quartz toggle in the second row
         row2 = ttk.Frame(opt)
-        row2.pack(fill=tk.X, padx=0, pady=(2, pad//2))
+        row2.pack(fill=tk.X, padx=0, pady=(2, pad // 2))
 
         self.quartz_var = tk.BooleanVar(value=False)
         label = "Quartz inject (fast)" + ("" if HAVE_QUARTZ else " (unavailable)")
@@ -642,7 +123,8 @@ class App:
         self.back_btn = ttk.Button(btns, text="Back 75", command=self.on_back_75)
         self.back_btn.pack(side=tk.LEFT, padx=(8, 0))
 
-    def _build_ai_tab(self, frm: ttk.Frame, pad: int):
+    def _build_ai_tab(self, frm: ttk.Frame, pad: int) -> None:
+        """Build the AI tab UI."""
         try:
             from .ai_chat import AIChatController
         except Exception:
@@ -658,11 +140,11 @@ class App:
         ttk.Radiobutton(top, text="Debug", variable=self.ai_mode, value="debug").pack(side=tk.LEFT, padx=(4, 0))
 
         ttk.Label(top, text="Model:").pack(side=tk.LEFT, padx=(16, 4))
-        self.ai_model = tk.StringVar(value="openrouter/openai/gpt-5-mini")
+        self.ai_model = tk.StringVar(value="openrouter/openai/gpt-4o-mini")
         self.ai_model_box = ttk.Combobox(top, textvariable=self.ai_model, width=40)
         self.ai_model_box["values"] = (
-            "openrouter/openai/gpt-5-mini",
             "openrouter/openai/gpt-4o-mini",
+            "openrouter/openai/gpt-4o",
             "openrouter/meta-llama/llama-3.1-70b-instruct",
             "openrouter/mistralai/mistral-large",
         )
@@ -713,16 +195,17 @@ class App:
         self.ai_controller = None
         if AIChatController is not None:
             self.ai_controller = AIChatController(logger=getattr(self, "logger", None))
-        self.ai_last_parsed = None
-        self.ai_last_mode = None
+        self.ai_last_parsed: Optional[dict] = None
+        self.ai_last_mode: Optional[str] = None
 
-    def _set_status(self, msg: str):
-        # Thread-safe update
-        def _upd():
+    def _set_status(self, msg: str) -> None:
+        """Thread-safe status update."""
+        def _upd() -> None:
             self.status_var.set(msg)
         self.root.after(0, _upd)
 
-    def on_run(self):
+    def on_run(self) -> None:
+        """Handle Run button click."""
         try:
             delay = int(self.delay_var.get())
         except ValueError:
@@ -743,9 +226,8 @@ class App:
 
         # Enforce turbo overrides at run time for consistency
         if settings.turbo_mode:
-            settings.delay_ms = min(settings.delay_ms, 40)
+            settings.delay_ms = min(settings.delay_ms, DELAY_TURBO_MS)
             settings.typing_segment_delay_ms = 0
-
 
         raw = self.text.get("1.0", tk.END)
         lines = raw.splitlines()
@@ -769,7 +251,7 @@ class App:
         except Exception:
             pass
 
-        def worker():
+        def worker() -> None:
             try:
                 self.automator.run_commands(lines, settings)
                 # Auto-teleport back 75 blocks when finished
@@ -792,16 +274,17 @@ class App:
 
         threading.Thread(target=worker, daemon=True).start()
 
-    def on_stop(self):
+    def on_stop(self) -> None:
+        """Handle Stop button click."""
         self.stop_event.set()
         self._set_status("Stopping…")
 
-    def on_back_75(self):
-        # One-click teleport 100 blocks backwards at current elevation
+    def on_back_75(self) -> None:
+        """Handle Back 75 button click - teleport 75 blocks backward."""
         try:
             delay = int(self.delay_var.get())
         except ValueError:
-            delay = 40
+            delay = DELAY_TURBO_MS
 
         settings = Settings(
             chat_key=self.chat_key_var.get(),
@@ -816,7 +299,7 @@ class App:
             use_quartz_injection=False,
         )
 
-        # Use local coordinates to move back along look direction; ^ ^ ^-100
+        # Use local coordinates to move back along look direction
         lines = ["/tp @s ^ ^ ^-75"]
 
         self.run_btn.config(state=tk.DISABLED)
@@ -826,7 +309,7 @@ class App:
         logger = Logger("log.txt")
         self.automator.logger = logger
 
-        def worker():
+        def worker() -> None:
             try:
                 self.automator.run_commands(lines, settings)
             finally:
@@ -839,32 +322,16 @@ class App:
 
         threading.Thread(target=worker, daemon=True).start()
 
-    def on_toggle_turbo(self):
-        # Adjust UI to recommended turbo values when toggled on/off
-        if self.turbo_var.get():
-            try:
-                self.delay_var.set("40")
-            except Exception:
-                pass
-            try:
-                self.type_seg_var.set("0")
-            except Exception:
-                pass
-        else:
-            # Restore a safer baseline if user used defaults
-            if self.delay_var.get() == "40":
-                self.delay_var.set("100")
-            if self.type_seg_var.get() == "0":
-                self.type_seg_var.set("8")
-
     # ===== AI Tab handlers =====
-    def _ai_append_transcript(self, who: str, text: str):
+    def _ai_append_transcript(self, who: str, text: str) -> None:
+        """Append a message to the AI chat transcript."""
         self.ai_transcript.configure(state=tk.NORMAL)
         self.ai_transcript.insert(tk.END, f"{who}: {text}\n")
         self.ai_transcript.see(tk.END)
         self.ai_transcript.configure(state=tk.DISABLED)
 
-    def _ai_set_result(self, obj: dict | None, raw: str | None, error: str | None):
+    def _ai_set_result(self, obj: Optional[dict], raw: Optional[str], error: Optional[str]) -> None:
+        """Set the AI result display."""
         self.ai_result.configure(state=tk.NORMAL)
         self.ai_result.delete("1.0", tk.END)
         if error:
@@ -874,6 +341,7 @@ class App:
         self.ai_result.configure(state=tk.DISABLED)
 
     def _get_ai_config(self):
+        """Get the current AI configuration from UI state."""
         from .ai_chat import AIConfig
 
         return AIConfig(
@@ -882,9 +350,13 @@ class App:
             attach_log=self.ai_attach_log.get(),
         )
 
-    def on_ai_send(self):
+    def on_ai_send(self) -> None:
+        """Handle AI Send button click."""
         if not self.ai_controller:
-            messagebox.showerror("Missing dependency", "AI features require 'openai-agents[litellm]' and 'python-dotenv'. Install via uv and try again.")
+            messagebox.showerror(
+                "Missing dependency",
+                "AI features require 'openai-agents[litellm]' and 'python-dotenv'. Install via uv and try again."
+            )
             return
 
         msg = self.ai_input.get().strip()
@@ -900,7 +372,7 @@ class App:
         self.ai_last_mode = mode
         cfg = self._get_ai_config()
 
-        def worker():
+        def worker() -> None:
             try:
                 out = self.ai_controller.send(mode=mode, cfg=cfg, user_message=msg)
             except Exception as e:
@@ -908,7 +380,7 @@ class App:
             parsed, raw, err = out.get("parsed"), out.get("raw"), out.get("error")
             self.ai_last_parsed = parsed
 
-            def done():
+            def done() -> None:
                 self._ai_set_result(parsed, raw, err)
                 if not err and parsed:
                     self.ai_apply_btn.config(state=tk.NORMAL)
@@ -919,7 +391,8 @@ class App:
 
         threading.Thread(target=worker, daemon=True).start()
 
-    def on_ai_apply(self):
+    def on_ai_apply(self) -> None:
+        """Apply AI-generated commands to the command editor."""
         if not self.ai_last_parsed:
             return
         if self.ai_last_mode == "create":
@@ -940,11 +413,13 @@ class App:
         if self.ai_last_parsed and isinstance(self.ai_last_parsed.get("delay_ms"), int):
             self.delay_var.set(str(self.ai_last_parsed.get("delay_ms")))
 
-    def on_ai_apply_run(self):
+    def on_ai_apply_run(self) -> None:
+        """Apply AI commands and immediately run them."""
         self.on_ai_apply()
         self.on_run()
 
-    def on_ai_reset(self):
+    def on_ai_reset(self) -> None:
+        """Reset the AI conversation."""
         self.ai_transcript.configure(state=tk.NORMAL)
         self.ai_transcript.delete("1.0", tk.END)
         self.ai_transcript.configure(state=tk.DISABLED)
@@ -953,32 +428,10 @@ class App:
         self.ai_result.configure(state=tk.DISABLED)
 
 
-def main():
+def main() -> None:
+    """Application entry point."""
     if tk is None:
         raise SystemExit("tkinter is required to run the UI.")
     root = tk.Tk()
     App(root)
     root.mainloop()
-
-
-class Logger:
-    def __init__(self, path: str = "log.txt"):
-        self.path = path
-        # Overwrite on each run
-        self._fp = open(self.path, "w", encoding="utf-8")
-        self.log("=== Maricraft run started ===")
-
-    def log(self, msg: str):
-        try:
-            ts = time.strftime("%Y-%m-%d %H:%M:%S")
-            self._fp.write(f"[{ts}] {msg}\n")
-            self._fp.flush()
-        except Exception:
-            pass
-
-    def close(self):
-        try:
-            self.log("=== Maricraft run finished ===")
-            self._fp.close()
-        except Exception:
-            pass

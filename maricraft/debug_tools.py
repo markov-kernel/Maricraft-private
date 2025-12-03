@@ -1,13 +1,26 @@
+"""Debug tools for testing paste and typing mechanisms."""
+
+from __future__ import annotations
+
 import argparse
-import time
 import subprocess
+import time
+
+from .constants import KEY_V, KEY_N, KEY_SPACE, KEY_DELETE
 
 
-def osascript(script: str) -> subprocess.CompletedProcess:
-    return subprocess.run(["osascript", "-"], input=script.encode("utf-8"), capture_output=True, check=False)
+def osascript(script: str) -> subprocess.CompletedProcess[bytes]:
+    """Execute an AppleScript and return the result."""
+    return subprocess.run(
+        ["osascript", "-"],
+        input=script.encode("utf-8"),
+        capture_output=True,
+        check=False,
+    )
 
 
-def focus_textedit_new():
+def focus_textedit_new() -> None:
+    """Open TextEdit and create/clear a document."""
     script = r'''
     tell application "TextEdit"
         activate
@@ -19,11 +32,13 @@ def focus_textedit_new():
     time.sleep(0.2)
 
 
-def set_clipboard(text: str):
+def set_clipboard(text: str) -> None:
+    """Set clipboard content using pbcopy."""
     subprocess.run(["pbcopy"], input=text.encode("utf-8"), check=False)
 
 
 def get_textedit_text() -> str:
+    """Get the text content from the frontmost TextEdit document."""
     script = r'''
     try
         tell application "TextEdit"
@@ -38,15 +53,16 @@ def get_textedit_text() -> str:
     return (proc.stdout or b"").decode("utf-8", "ignore")
 
 
-def paste_via_system_events():
+def paste_via_system_events() -> None:
+    """Paste from clipboard using multiple Cmd+V variants."""
     variants = [
-        'tell application "System Events" to key code 9 using {command down}',
+        f'tell application "System Events" to key code {KEY_V} using {{command down}}',
         'tell application "System Events" to keystroke "v" using {command down}',
-        r'''
+        rf'''
         tell application "System Events"
             key down command
             delay 0.02
-            key code 9
+            key code {KEY_V}
             delay 0.02
             key up command
         end tell
@@ -57,24 +73,35 @@ def paste_via_system_events():
         time.sleep(0.04)
 
 
-def type_tilde_safe():
-    script = r'''
+def type_tilde_safe() -> None:
+    """Type a tilde character safely using Option+n then Space."""
+    script = rf'''
     tell application "System Events"
         key down option
-        key code 45 -- n
+        key code {KEY_N}
         key up option
-        key code 49 -- space
-        key code 49 -- extra sep space
-        key code 51 -- delete one
+        key code {KEY_SPACE}
+        key code {KEY_SPACE}
+        key code {KEY_DELETE}
     end tell
     '''
     osascript(script)
 
 
-def main():
+def main() -> None:
+    """Main entry point for debug tools CLI."""
     ap = argparse.ArgumentParser(description="Maricraft debug tools")
-    ap.add_argument("mode", choices=["paste-test", "type-tilde-test"], help="Test mode")
-    ap.add_argument("--text", dest="text", default="/execute at @p run fill ~-1 ~ ~-1 ~1 ~1 ~1 air", help="Text to paste/type")
+    ap.add_argument(
+        "mode",
+        choices=["paste-test", "type-tilde-test"],
+        help="Test mode",
+    )
+    ap.add_argument(
+        "--text",
+        dest="text",
+        default="/execute at @p run fill ~-1 ~ ~-1 ~1 ~1 ~1 air",
+        help="Text to paste/type",
+    )
     args = ap.parse_args()
 
     focus_textedit_new()
@@ -96,7 +123,7 @@ def main():
         parts = args.text.split("~")
         for i, seg in enumerate(parts):
             if seg:
-                esc = seg.replace("\\", "\\\\").replace("\"", "\\\"")
+                esc = seg.replace("\\", "\\\\").replace('"', '\\"')
                 osascript(f'tell application "System Events" to keystroke "{esc}"')
             if i < len(parts) - 1:
                 type_tilde_safe()

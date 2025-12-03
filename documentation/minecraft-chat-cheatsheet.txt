@@ -1,4 +1,4 @@
-Minecraft Java 1.20.1 Chat Command Cheat Sheet
+Minecraft Java 1.21.1 Chat Command Cheat Sheet
 
 
 Chat & Permissions

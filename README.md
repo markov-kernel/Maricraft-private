@@ -19,7 +19,7 @@ AI Assistant (Create & Debug)
 
 - Create new commands or debug failing ones from the AI tab.
 - Add `.env` with `OPENROUTER_API_KEY=...` (OpenRouter key). Optional: `OR_SITE_URL`, `OR_APP_NAME` for attribution.
-- Choose a model (e.g., `openrouter/openai/gpt-5-mini`) and chat. The app requests structured JSON via OpenRouter `response_format` and requires supported providers.
+- Choose a model (e.g., `openrouter/openai/gpt-4o-mini`) and chat. The default model in the UI may need to be changed to a valid option. The app requests structured JSON via OpenRouter `response_format` and requires supported providers.
 - Debug mode can attach the tail of `log.txt` for context. Use “Apply to Commands” or “Apply & Run”.
 
 First-run permissions
@@ -33,6 +33,12 @@ Usage tips
 - Lines starting with `#` and blank lines are ignored.
 - Clipboard is preserved and restored when done.
 - Logs: writes to `log.txt` in the working directory and overwrites on each Run.
+- Back 75: Click this button to quickly teleport 75 blocks backward (useful after building ahead).
+
+Emergency stop
+
+- Press Space+Escape (either order, within 500ms) to immediately stop a running macro. This works globally even when Minecraft is focused.
+- Requires Accessibility permissions for the Quartz event tap.
 
 Notes
 
