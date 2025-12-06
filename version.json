@@ -1,7 +1,7 @@
 {
-  "version": "2.0.20",
+  "version": "2.0.21",
   "download_url": "https://github.com/markov-kernel/Maricraft-private/releases/latest",
-  "exe_download_url": "https://github.com/markov-kernel/Maricraft-private/releases/download/v2.0.20/MariCraft.exe",
+  "exe_download_url": "https://github.com/markov-kernel/Maricraft-private/releases/download/v2.0.21/MariCraft.exe",
   "sha256": "",
-  "release_notes": "Bundle psutil properly for Bedrock detection"
+  "release_notes": "Add psutil to CI build dependencies"
 }

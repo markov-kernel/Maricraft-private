@@ -24,7 +24,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pyautogui pygetwindow pyperclip pyinstaller customtkinter darkdetect pillow
+          pip install pyautogui pygetwindow pyperclip pyinstaller customtkinter darkdetect pillow psutil
 
       - name: Build with PyInstaller
         run: |
