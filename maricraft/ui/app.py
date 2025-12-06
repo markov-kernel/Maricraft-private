@@ -418,23 +418,54 @@ class App(ctk.CTk):
     def _auto_install_datapacks(self) -> None:
         """Auto-install/update datapacks in background."""
         def worker():
-            from ..datapack import auto_install_all_datapacks, get_all_bedrock_worlds_paths, get_all_minecraft_instances
+            from pathlib import Path
+            from ..datapack import (
+                auto_install_all_datapacks,
+                get_all_bedrock_worlds_paths,
+                get_all_minecraft_instances,
+                set_debug_log_path,
+                get_bundled_behavior_pack_path,
+            )
+
+            # Initialize debug log file in Maricraft directory (readable from macOS via Parallels)
+            # When frozen (exe), log goes next to exe. When dev, goes in maricraft package dir.
+            import sys
+            if getattr(sys, 'frozen', False):
+                log_path = Path(sys.executable).parent / "bedrock_debug.log"
+            else:
+                log_path = Path(__file__).parent.parent / "bedrock_debug.log"
+            set_debug_log_path(log_path)
 
             # Debug: log detected paths
-            print("DEBUG: Checking for Minecraft installations...")
+            from ..datapack import debug_log
+            debug_log("Checking for Minecraft installations...")
+            debug_log(f"Log file at: {log_path}")
+
+            # Log bundled behavior pack info
+            bundled_pack = get_bundled_behavior_pack_path()
+            if bundled_pack:
+                debug_log(f"Bundled behavior pack: {bundled_pack}")
+                debug_log(f"Bundled pack exists: {bundled_pack.exists()}")
+                if bundled_pack.exists():
+                    for f in sorted(bundled_pack.rglob("*")):
+                        if f.is_file():
+                            debug_log(f"  Bundled file: {f.relative_to(bundled_pack)}")
+            else:
+                debug_log("WARNING: No bundled behavior pack found!")
+
             bedrock_paths = get_all_bedrock_worlds_paths()
             if bedrock_paths:
-                print(f"DEBUG: Found Bedrock paths: {bedrock_paths}")
+                debug_log(f"Found Bedrock paths: {bedrock_paths}")
             else:
-                print("DEBUG: No Bedrock worlds paths found")
+                debug_log("No Bedrock worlds paths found")
 
             all_instances = get_all_minecraft_instances()
-            print(f"DEBUG: All detected instances: {[(name, str(path), ver) for name, path, ver in all_instances]}")
+            debug_log(f"All detected instances: {[(name, str(path), ver) for name, path, ver in all_instances]}")
 
             results = auto_install_all_datapacks()
 
             # Debug: log results
-            print(f"DEBUG: Auto-install results: installed={results['installed']}, updated={results['updated']}, skipped={results['skipped']}, failed={results['failed']}")
+            debug_log(f"Auto-install results: installed={results['installed']}, updated={results['updated']}, skipped={results['skipped']}, failed={results['failed']}")
 
             # Build status message
             installed = len(results["installed"])

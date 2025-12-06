@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import datetime
 import json
 import os
 import re
@@ -14,6 +15,32 @@ from typing import List, Optional, Tuple, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .commands import CommandButton
+
+# Debug logging for Bedrock behavior pack troubleshooting
+_DEBUG_LOG_PATH: Optional[Path] = None
+
+
+def set_debug_log_path(path: Path) -> None:
+    """Set the path for debug logging."""
+    global _DEBUG_LOG_PATH
+    _DEBUG_LOG_PATH = path
+    # Clear existing log
+    if path.exists():
+        path.unlink()
+    debug_log("=== Bedrock Debug Log Started ===")
+
+
+def debug_log(message: str) -> None:
+    """Write a debug message to log file and console."""
+    timestamp = datetime.datetime.now().strftime("%H:%M:%S")
+    formatted = f"[{timestamp}] {message}"
+    print(f"DEBUG: {message}")
+    if _DEBUG_LOG_PATH:
+        try:
+            with open(_DEBUG_LOG_PATH, "a", encoding="utf-8") as f:
+                f.write(formatted + "\n")
+        except Exception as e:
+            print(f"DEBUG LOG ERROR: {e}")
 
 # Datapack metadata
 DATAPACK_NAME = "maricraft_datapack"
@@ -915,37 +942,100 @@ def install_behavior_pack(world_path: Path, source_path: Optional[Path] = None) 
     Returns:
         True if installation succeeded.
     """
+    debug_log(f"=== Installing behavior pack to: {world_path} ===")
+
     if source_path is None:
         source_path = get_bundled_behavior_pack_path()
 
     if source_path is None or not source_path.exists():
-        print(f"DEBUG: No bundled behavior pack found. source_path={source_path}")
+        debug_log(f"ERROR: No bundled behavior pack found. source_path={source_path}")
         return False
 
+    debug_log(f"Source pack: {source_path}")
+
+    # Log all files in source pack
+    debug_log("--- Source pack contents ---")
+    source_files = list(source_path.rglob("*"))
+    for f in sorted(source_files):
+        if f.is_file():
+            rel = f.relative_to(source_path)
+            size = f.stat().st_size
+            debug_log(f"  {rel} ({size} bytes)")
+
+    # Log source manifest.json
+    source_manifest = source_path / "manifest.json"
+    if source_manifest.exists():
+        debug_log(f"--- Source manifest.json ---")
+        debug_log(source_manifest.read_text(encoding="utf-8"))
+
+    # Log source version.txt
+    source_version = source_path / "version.txt"
+    if source_version.exists():
+        debug_log(f"Source version.txt: {source_version.read_text(encoding='utf-8').strip()}")
+
     dest = world_path / "behavior_packs" / BEHAVIOR_PACK_NAME
+    debug_log(f"Destination: {dest}")
+
     try:
         # Create behavior_packs folder if it doesn't exist
         dest.parent.mkdir(parents=True, exist_ok=True)
+        debug_log(f"Created parent dir: {dest.parent}")
 
         # Remove existing pack if present
         if dest.exists():
+            debug_log(f"Removing existing pack at {dest}")
             shutil.rmtree(dest)
 
         # Copy behavior pack
+        debug_log("Copying behavior pack...")
         shutil.copytree(source_path, dest)
+        debug_log("Copy complete!")
+
+        # Verify copied files
+        debug_log("--- Installed pack contents ---")
+        installed_files = list(dest.rglob("*"))
+        mcfunction_count = 0
+        for f in sorted(installed_files):
+            if f.is_file():
+                rel = f.relative_to(dest)
+                size = f.stat().st_size
+                debug_log(f"  {rel} ({size} bytes)")
+                if str(rel).endswith(".mcfunction"):
+                    mcfunction_count += 1
+        debug_log(f"Total .mcfunction files installed: {mcfunction_count}")
+
+        # Log installed manifest.json
+        installed_manifest = dest / "manifest.json"
+        if installed_manifest.exists():
+            debug_log(f"--- Installed manifest.json ---")
+            debug_log(installed_manifest.read_text(encoding="utf-8"))
+
+        # Log a sample function to verify content
+        test_func = dest / "functions" / "test.mcfunction"
+        if test_func.exists():
+            debug_log(f"--- Sample: test.mcfunction ---")
+            debug_log(test_func.read_text(encoding="utf-8"))
+
+        buffs_func = dest / "functions" / "buffs" / "super_regen.mcfunction"
+        if buffs_func.exists():
+            debug_log(f"--- Sample: buffs/super_regen.mcfunction ---")
+            debug_log(buffs_func.read_text(encoding="utf-8"))
 
         # Enable the pack in world_behavior_packs.json
         _enable_behavior_pack_in_world(world_path)
 
+        debug_log("=== Installation successful ===")
         return True
     except PermissionError as e:
-        print(f"DEBUG: Permission denied for {world_path}: {e}")
+        debug_log(f"ERROR: Permission denied for {world_path}: {e}")
         return False
     except OSError as e:
-        print(f"DEBUG: OS error for {world_path}: {e}")
+        debug_log(f"ERROR: OS error for {world_path}: {e}")
         return False
     except Exception as e:
-        print(f"DEBUG: Unexpected error for {world_path}: {type(e).__name__}: {e}")
+        debug_log(f"ERROR: Unexpected error for {world_path}: {type(e).__name__}: {e}")
+        import traceback
+        debug_log(traceback.format_exc())
         return False
 
 
@@ -954,36 +1044,56 @@ def _enable_behavior_pack_in_world(world_path: Path) -> None:
 
     This file tells Bedrock which behavior packs are enabled for the world.
     """
+    debug_log("--- Enabling behavior pack in world ---")
     packs_file = world_path / "world_behavior_packs.json"
+    debug_log(f"world_behavior_packs.json path: {packs_file}")
 
     # Read manifest to get version
     manifest_path = world_path / "behavior_packs" / BEHAVIOR_PACK_NAME / "manifest.json"
+    debug_log(f"Reading manifest from: {manifest_path}")
     try:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         version = manifest["header"]["version"]
-    except Exception:
+        debug_log(f"Manifest version: {version}")
+    except Exception as e:
         version = [2, 0, 0]
+        debug_log(f"WARNING: Could not read manifest, using default version: {e}")
 
     pack_entry = {
         "pack_id": BEHAVIOR_PACK_UUID,
         "version": version
     }
+    debug_log(f"Pack entry to add: {pack_entry}")
 
     # Read existing packs or start fresh
     packs = []
     if packs_file.exists():
+        debug_log("world_behavior_packs.json exists, reading...")
         try:
-            packs = json.loads(packs_file.read_text(encoding="utf-8"))
+            content = packs_file.read_text(encoding="utf-8")
+            debug_log(f"Existing content: {content}")
+            packs = json.loads(content)
             if not isinstance(packs, list):
+                debug_log(f"WARNING: Content was not a list, resetting")
                 packs = []
-        except Exception:
+        except Exception as e:
+            debug_log(f"WARNING: Could not read existing packs file: {e}")
             packs = []
+    else:
+        debug_log("world_behavior_packs.json does not exist, will create new")
 
     # Remove existing Maricraft entry if present
+    old_len = len(packs)
     packs = [p for p in packs if p.get("pack_id") != BEHAVIOR_PACK_UUID]
+    if len(packs) < old_len:
+        debug_log(f"Removed existing Maricraft entry (was at position {old_len - len(packs)})")
 
     # Add our pack at the beginning
     packs.insert(0, pack_entry)
 
     # Write back
-    packs_file.write_text(json.dumps(packs, indent=2), encoding="utf-8")
+    final_content = json.dumps(packs, indent=2)
+    debug_log(f"Writing world_behavior_packs.json:")
+    debug_log(final_content)
+    packs_file.write_text(final_content, encoding="utf-8")
+    debug_log("world_behavior_packs.json written successfully")

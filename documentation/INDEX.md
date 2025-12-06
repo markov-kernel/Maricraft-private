@@ -18,7 +18,7 @@ Maricraft is a **Windows-only**, kid-friendly Minecraft command helper. Click co
 - 64 pre-programmed buttons across 4 categories
 - **Datapack-powered** - Commands execute instantly via Minecraft functions
 - **Auto-update check** - Get notified when new versions are available
-- Works with Minecraft Java Edition 1.21.x
+- Works with **Minecraft Java Edition 1.21.x** and **Bedrock Edition**
 - Simple installation (just run INSTALL.bat)
 
 ### Button Categories
@@ -169,13 +169,36 @@ The datapack is required for commands to work. It's installed automatically per-
 
 The datapack is copied to: `<world>/datapacks/maricraft_datapack/`
 
+### Bedrock Edition
+
+Maricraft automatically detects when Minecraft Bedrock Edition is running and uses **behavior packs** instead of datapacks.
+
+**Key differences from Java Edition:**
+
+| Aspect | Java Edition | Bedrock Edition |
+|--------|--------------|-----------------|
+| Pack type | Datapack | Behavior pack |
+| Reload method | `/reload` command | **Full Minecraft restart** |
+| Install location | `<world>/datapacks/` | `<world>/behavior_packs/` |
+| Function syntax | `maricraft:buffs/god_mode` | `buffs/god_mode` |
+
+**Important:** Bedrock Edition does **NOT** support the `/reload` command for behavior packs. After installing or updating the behavior pack, you must:
+
+1. Save and close the world
+2. **Completely exit Minecraft Bedrock** (not just minimize)
+3. Restart Minecraft Bedrock
+4. Open the world again
+
+The behavior pack is auto-installed to all detected Bedrock worlds when the app starts.
+
 ---
 
 ## Troubleshooting
 
 **"Unknown function" or commands not working?**
-- Make sure the datapack is installed (click "Install Datapack" button)
-- Run `/reload` in Minecraft after installing the datapack
+- Make sure the datapack/behavior pack is installed (click "Install Datapack" button)
+- **Java Edition:** Run `/reload` in Minecraft after installing the datapack
+- **Bedrock Edition:** Completely restart Minecraft (not just the world)
 - Make sure cheats are enabled in your Minecraft world
 
 **Commands not working?**
