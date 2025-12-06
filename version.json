@@ -2,6 +2,6 @@
   "version": "2.0.22",
   "download_url": "https://github.com/markov-kernel/Maricraft-private/releases/latest",
   "exe_download_url": "https://github.com/markov-kernel/Maricraft-private/releases/download/v2.0.22/MariCraft.exe",
-  "sha256": "",
+  "sha256": "c33bae1665b8d173693fcb94fe189c2fd053978b39c5819b00b2039284a1a22d",
   "release_notes": "Fix auto-update relaunch using explorer.exe"
 }
