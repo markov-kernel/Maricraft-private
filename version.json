@@ -2,6 +2,6 @@
   "version": "2.0.32",
   "download_url": "https://github.com/markov-kernel/Maricraft-private/releases/latest",
   "exe_download_url": "https://github.com/markov-kernel/Maricraft-private/releases/download/v2.0.32/MariCraft.exe",
-  "sha256": "",
+  "sha256": "b70a5d460286f08b77b6749c95d572953c56dd3c4f0ad32ae76325bd2a802224",
   "release_notes": "Validator improvements: better SNBT vs JSON detection, Java execute subcommand checks, BOM encoding support"
 }
