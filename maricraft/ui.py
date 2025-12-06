@@ -269,14 +269,63 @@ class App:
         b = min(255, int(hex_color[5:7], 16) + 30)
         return f"#{r:02x}{g:02x}{b:02x}"
 
+    def _detect_bedrock_window(self) -> bool:
+        """Check if Minecraft Bedrock Edition is the active window.
+
+        Uses process name detection which is more reliable than window titles.
+        Works with GDK (Xbox App) and UWP (Microsoft Store) versions.
+        """
+        try:
+            import ctypes
+            import psutil
+            from ctypes import wintypes
+
+            # Get Active Window Handle
+            hwnd = ctypes.windll.user32.GetForegroundWindow()
+            if not hwnd:
+                return False
+
+            # Get Process ID from Window
+            pid = wintypes.DWORD()
+            ctypes.windll.user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+
+            if pid.value > 0:
+                try:
+                    proc = psutil.Process(pid.value)
+                    proc_name = proc.name().lower()
+
+                    # Primary: The actual Bedrock executable
+                    if proc_name == "minecraft.windows.exe":
+                        return True
+
+                    # Secondary: UWP Frame Host (check title)
+                    if proc_name == "applicationframehost.exe":
+                        length = ctypes.windll.user32.GetWindowTextLengthW(hwnd)
+                        buff = ctypes.create_unicode_buffer(length + 1)
+                        ctypes.windll.user32.GetWindowTextW(hwnd, buff, length + 1)
+                        if buff.value == "Minecraft":
+                            return True
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                    pass
+        except Exception:
+            pass
+        return False
+
     def _on_button_click(self, cmd_button: CommandButton) -> None:
         """Handle command button click."""
         if self.is_running:
             messagebox.showinfo("Busy", "Please wait for the current command to finish.")
             return
 
-        # Check if we should use datapack mode
-        if self.use_datapack_mode and cmd_button.function_id:
+        # Detect which edition is active
+        is_bedrock = self._detect_bedrock_window()
+
+        if is_bedrock:
+            # Bedrock Edition: use bedrock_commands if available, otherwise fall back
+            commands = cmd_button.bedrock_commands if cmd_button.bedrock_commands else cmd_button.commands
+            self._execute_commands(commands, cmd_button.name)
+        elif self.use_datapack_mode and cmd_button.function_id:
+            # Java Edition with datapack mode
             # Check if datapack is installed (only warn once per session)
             if not self.datapack_warning_shown and not check_any_world_has_datapack():
                 self.datapack_warning_shown = True
