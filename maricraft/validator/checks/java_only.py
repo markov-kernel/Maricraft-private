@@ -2,12 +2,18 @@
 Checks for Java-only commands and syntax.
 
 This module detects:
-- JAVA_COMMAND: Commands that don't exist in Bedrock (data, loot, attribute, item)
-- NBT_SYNTAX: NBT {...} syntax on entities/items
+- JAVA_COMMAND: Commands that don't exist in Bedrock (data, attribute, item, etc.)
+- NBT_SYNTAX: Java SNBT {...} syntax (unquoted keys) not supported in Bedrock
 - EFFECT_SYNTAX: Java's "effect give" vs Bedrock's "effect"
 - JAVA_SELECTOR: Java-only selector arguments (nbt, predicate, team)
+
+NOTE: Bedrock /give supports JSON components with quoted keys:
+  give @s diamond_sword 1 0 {"can_destroy":{"blocks":["stone"]}}
+This is different from Java SNBT which uses unquoted keys:
+  give @s diamond_sword{Enchantments:[{id:sharpness,lvl:5}]}
 """
 
+import re
 from typing import List
 
 from ..models import Issue, Token, TokenType, Severity, ValidationContext
@@ -15,6 +21,65 @@ from ..config import BedrockKnowledge
 from ..tokenizer import get_command_name, has_nbt_structure, get_tokens_outside_quotes
 from ..parser import get_all_commands_in_line, extract_selector_args
 from . import Check, register_check
+
+
+def is_snbt_syntax(line: str) -> bool:
+    """
+    Detect if a line contains Java SNBT syntax (unquoted keys).
+
+    SNBT (Java): {Health:20, CustomName:"Test"} - keys are bare identifiers
+    JSON (Bedrock): {"can_destroy":{"blocks":["stone"]}} - keys are quoted strings
+
+    Returns True if SNBT pattern is detected (should be flagged).
+    """
+    # Look for patterns like: {word: or ,word: or [word:
+    # These indicate SNBT with unquoted keys
+    # Exclude patterns where key is quoted: {"key": or {'key':
+
+    # Pattern: brace or comma followed by whitespace, then identifier, then colon
+    # but NOT preceded by a quote
+    snbt_pattern = re.compile(r'[{,\[]\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:')
+
+    # Also check for item attached NBT: item{...} pattern (Java-only)
+    attached_nbt_pattern = re.compile(r'[a-zA-Z_][a-zA-Z0-9_:]*\{')
+
+    if attached_nbt_pattern.search(line):
+        # This is definitely Java SNBT - items can't have attached NBT in Bedrock
+        return True
+
+    # Check for unquoted keys in braces
+    for match in snbt_pattern.finditer(line):
+        # Get the context - check if we're in a JSON structure (quoted keys)
+        # or SNBT structure (unquoted keys)
+        start = match.start()
+
+        # Look backwards to see if this is inside a JSON object (has quoted keys)
+        # Simple heuristic: if there's a { followed by " before this key, it's JSON
+        prefix = line[:start+1]  # Include the { or , character
+
+        # Count unquoted vs quoted keys before this point
+        # If we find ANY unquoted key pattern, it's SNBT
+        return True
+
+    return False
+
+
+def has_attached_nbt(tokens: List[Token]) -> bool:
+    """
+    Check if tokens contain item{NBT} pattern (Java-only attached NBT).
+
+    In Java: give @s diamond_sword{Enchantments:[...]}
+    In Bedrock: give @s diamond_sword 1 0 {"components":{...}}
+    """
+    for i, token in enumerate(tokens):
+        if token.type == TokenType.NBT_OPEN and not token.is_in_quote:
+            # Check if previous token is an identifier (item name)
+            if i > 0:
+                prev = tokens[i-1]
+                if prev.type == TokenType.IDENTIFIER and not prev.is_in_quote:
+                    # This is item{NBT} pattern - Java SNBT
+                    return True
+    return False
 
 
 @register_check
@@ -50,14 +115,21 @@ class JavaCommandCheck(Check):
 
 @register_check
 class NBTSyntaxCheck(Check):
-    """Check for NBT syntax that doesn't work in Bedrock."""
+    """Check for Java SNBT syntax that doesn't work in Bedrock.
+
+    IMPORTANT: Bedrock /give DOES support JSON components:
+        give @s diamond_sword 1 0 {"can_destroy":{"blocks":["stone"]}}
+
+    This check only flags Java SNBT syntax (unquoted keys):
+        give @s diamond_sword{Enchantments:[{id:sharpness}]}  # INVALID in Bedrock
+    """
 
     code = "NBT_SYNTAX"
     severity = Severity.ERROR
-    description = "Detects NBT {...} syntax not supported in Bedrock"
+    description = "Detects Java SNBT {...} syntax not supported in Bedrock"
 
     # Commands that legitimately use NBT-like syntax in Bedrock
-    SAFE_NBT_COMMANDS = {'particle', 'playsound', 'scriptevent'}
+    SAFE_NBT_COMMANDS = {'particle', 'playsound', 'scriptevent', 'tellraw', 'titleraw'}
 
     def check(self, tokens: List[Token], context: ValidationContext) -> List[Issue]:
         issues = []
@@ -65,23 +137,30 @@ class NBTSyntaxCheck(Check):
         # Get command name
         cmd = context.command_name.lower()
 
-        # Skip safe NBT commands
+        # Skip safe NBT commands (text commands handled by tokenizer already)
         if cmd in self.SAFE_NBT_COMMANDS:
             return issues
 
-        # Look for NBT braces outside quotes
-        outside_quote_tokens = get_tokens_outside_quotes(tokens)
+        # Check for attached NBT pattern: item{NBT} (always Java-only)
+        if has_attached_nbt(tokens):
+            issues.append(self.create_issue(
+                context,
+                "Attached NBT syntax (item{...}) is Java-only",
+                suggestion="In Bedrock, use: give @s item count data {\"components\":{...}}"
+            ))
+            return issues
 
-        if has_nbt_structure(outside_quote_tokens):
-            # Check what comes before the brace
-            # NBT after give/summon is Java-only
-            nbt_commands = {'give', 'summon', 'setblock', 'fill', 'execute'}
+        # Check for SNBT syntax (unquoted keys like {Health:20})
+        # This is different from valid Bedrock JSON ({"key":"value"})
+        if is_snbt_syntax(context.line):
+            # Only flag for commands where SNBT would be problematic
+            nbt_commands = {'summon', 'setblock', 'fill', 'execute', 'replaceitem'}
 
             if cmd in nbt_commands:
                 issues.append(self.create_issue(
                     context,
-                    f"NBT syntax {{...}} is not supported in Bedrock Edition",
-                    suggestion="Use Bedrock-specific syntax or remove NBT data"
+                    "SNBT syntax (unquoted keys) is not supported in Bedrock",
+                    suggestion="Bedrock does not support NBT data on entities/blocks"
                 ))
 
         return issues

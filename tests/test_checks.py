@@ -36,10 +36,10 @@ class TestJavaCommandCheck:
         issues = run_checks("data get entity @s")
         assert any(i.code == "JAVA_COMMAND" for i in issues)
 
-    def test_java_only_command_loot(self):
-        """'loot' command should be flagged."""
+    def test_loot_command_valid_in_bedrock(self):
+        """'loot' command should NOT be flagged - Bedrock has /loot since 1.18+."""
         issues = run_checks("loot give @s loot minecraft:chests/desert_pyramid")
-        assert any(i.code == "JAVA_COMMAND" for i in issues)
+        assert not any(i.code == "JAVA_COMMAND" for i in issues)
 
     def test_java_only_command_attribute(self):
         """'attribute' command should be flagged."""
@@ -244,3 +244,83 @@ class TestRegressionCases:
         issues = run_checks(line)
         # particle is a safe NBT command
         assert not any(i.code == "NBT_SYNTAX" for i in issues)
+
+
+class TestBedrockJSONComponents:
+    """Test that Bedrock JSON components are NOT flagged as NBT.
+
+    Bedrock /give supports JSON components:
+        give @s diamond_sword 1 0 {"can_destroy":{"blocks":["stone"]}}
+
+    This is different from Java SNBT which uses unquoted keys:
+        give @s diamond_sword{Enchantments:[{id:sharpness}]}
+    """
+
+    def test_give_with_json_components_valid(self):
+        """Bedrock /give with JSON components should NOT be flagged."""
+        issues = run_checks('give @s diamond_sword 1 0 {"can_destroy":{"blocks":["stone"]}}')
+        assert not any(i.code == "NBT_SYNTAX" for i in issues)
+
+    def test_give_with_attached_snbt_flagged(self):
+        """Java SNBT attached to item SHOULD be flagged."""
+        issues = run_checks("give @s diamond_sword{Enchantments:[{id:sharpness}]}")
+        assert any(i.code == "NBT_SYNTAX" for i in issues)
+
+    def test_summon_with_snbt_flagged(self):
+        """Java SNBT on summon SHOULD be flagged."""
+        issues = run_checks("summon zombie ~ ~ ~ {Health:20}")
+        assert any(i.code == "NBT_SYNTAX" for i in issues)
+
+
+class TestJavaExecuteSubcommands:
+    """Test detection of Java-only execute subcommands."""
+
+    def test_execute_store_flagged(self):
+        """execute store should be flagged (Java-only)."""
+        issues = run_checks("execute store result score @s obj run time query daytime")
+        assert any(i.code == "JAVA_EXECUTE" for i in issues)
+
+    def test_execute_if_data_flagged(self):
+        """execute if data should be flagged (Java-only)."""
+        issues = run_checks("execute if data entity @s {} run say hi")
+        assert any(i.code == "JAVA_EXECUTE" for i in issues)
+
+    def test_execute_if_predicate_flagged(self):
+        """execute if predicate should be flagged (Java-only)."""
+        issues = run_checks("execute if predicate my:check run say hi")
+        assert any(i.code == "JAVA_EXECUTE" for i in issues)
+
+    def test_execute_summon_flagged(self):
+        """execute summon should be flagged (Java-only)."""
+        issues = run_checks("execute summon pig run say hi")
+        assert any(i.code == "JAVA_EXECUTE" for i in issues)
+
+    def test_execute_on_flagged(self):
+        """execute on should be flagged (Java-only)."""
+        issues = run_checks("execute on passengers run say hi")
+        assert any(i.code == "JAVA_EXECUTE" for i in issues)
+
+    def test_execute_as_valid(self):
+        """execute as should NOT be flagged (valid in Bedrock)."""
+        issues = run_checks("execute as @a run say hi")
+        assert not any(i.code == "JAVA_EXECUTE" for i in issues)
+
+    def test_execute_at_valid(self):
+        """execute at should NOT be flagged (valid in Bedrock)."""
+        issues = run_checks("execute at @s run tp @s ~ ~1 ~")
+        assert not any(i.code == "JAVA_EXECUTE" for i in issues)
+
+    def test_execute_if_entity_valid(self):
+        """execute if entity should NOT be flagged (valid in Bedrock)."""
+        issues = run_checks("execute if entity @e[type=zombie] run say found zombie")
+        assert not any(i.code == "JAVA_EXECUTE" for i in issues)
+
+    def test_execute_if_block_valid(self):
+        """execute if block should NOT be flagged (valid in Bedrock)."""
+        issues = run_checks("execute if block ~ ~ ~ stone run say standing on stone")
+        assert not any(i.code == "JAVA_EXECUTE" for i in issues)
+
+    def test_execute_if_score_valid(self):
+        """execute if score should NOT be flagged (valid in Bedrock)."""
+        issues = run_checks("execute if score @s obj matches 10.. run say score is 10+")
+        assert not any(i.code == "JAVA_EXECUTE" for i in issues)

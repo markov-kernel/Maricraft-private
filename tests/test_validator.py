@@ -93,7 +93,8 @@ class TestBedrockValidator:
         result = validator.validate_file(mcfunction)
 
         assert result.is_valid
-        assert result.encoding_used in ['utf-8', 'latin-1']
+        # utf-8-sig is first in fallback chain, handles BOM common in Bedrock packs
+        assert result.encoding_used in ['utf-8-sig', 'utf-8', 'latin-1']
 
     def test_inline_ignore(self, tmp_path):
         """Inline ignore comments should work."""

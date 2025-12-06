@@ -17,10 +17,12 @@ Usage:
 Key Features:
     - Tokenizer-based parsing (no false positives from quoted strings)
     - Recursive execute chain parsing
-    - Encoding fallback (UTF-8 → Latin-1 → CP1252)
+    - Encoding fallback (UTF-8-sig → UTF-8 → Latin-1 → CP1252)
     - Modern Java syntax detection (macros, 1.20.5+ components)
     - Context-aware validation (skips safe commands like tellraw)
 """
+
+from pathlib import Path
 
 from .models import (
     Severity,

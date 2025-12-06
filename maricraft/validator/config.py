@@ -12,17 +12,19 @@ from typing import Dict, Set, List, Optional
 
 
 # Default encoding fallback chain for reading files
-ENCODING_FALLBACK: List[str] = ["utf-8", "latin-1", "cp1252"]
+# utf-8-sig handles BOM (common in Bedrock behavior packs)
+ENCODING_FALLBACK: List[str] = ["utf-8-sig", "utf-8", "latin-1", "cp1252"]
 
 
 class BedrockKnowledge:
     """Static knowledge base for Bedrock validation."""
 
     # Commands that exist ONLY in Java Edition
+    # NOTE: 'loot' was removed - Bedrock has /loot since 1.18+
     JAVA_ONLY_COMMANDS: Set[str] = {
         'advancement', 'attribute', 'ban', 'ban-ip', 'bossbar', 'data',
         'datapack', 'debug', 'defaultgamemode', 'forceload', 'item',
-        'jfr', 'loot', 'pardon', 'pardon-ip', 'perf', 'place',
+        'jfr', 'pardon', 'pardon-ip', 'perf', 'place',
         'publish', 'recipe', 'return', 'save-all', 'save-off', 'save-on',
         'seed', 'spectate', 'team', 'teammsg', 'tm', 'trigger',
         'worldborder'

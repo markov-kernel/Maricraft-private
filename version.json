@@ -1,7 +1,7 @@
 {
-  "version": "2.0.31",
+  "version": "2.0.32",
   "download_url": "https://github.com/markov-kernel/Maricraft-private/releases/latest",
-  "exe_download_url": "https://github.com/markov-kernel/Maricraft-private/releases/download/v2.0.31/MariCraft.exe",
-  "sha256": "2a11ed2b29a8c4b1d87cdb3107bab82874af5036327d0c723312c3650bc8821e",
-  "release_notes": "Fix: don't auto-relaunch after update (manual restart required)"
+  "exe_download_url": "https://github.com/markov-kernel/Maricraft-private/releases/download/v2.0.32/MariCraft.exe",
+  "sha256": "",
+  "release_notes": "Validator improvements: better SNBT vs JSON detection, Java execute subcommand checks, BOM encoding support"
 }
