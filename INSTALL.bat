@@ -33,7 +33,7 @@ echo Installing/Updating packages...
 echo ========================================
 echo.
 
-:: Use --upgrade to update existing packages
+:: Install all required packages
 echo Installing pyautogui...
 python -m pip install --upgrade pyautogui --quiet 2>nul
 if %errorlevel% neq 0 (
@@ -50,6 +50,12 @@ echo Installing pyperclip...
 python -m pip install --upgrade pyperclip --quiet 2>nul
 if %errorlevel% neq 0 (
     python -m pip install --upgrade pyperclip --user --quiet 2>nul
+)
+
+echo Installing customtkinter (modern UI)...
+python -m pip install --upgrade customtkinter --quiet 2>nul
+if %errorlevel% neq 0 (
+    python -m pip install --upgrade customtkinter --user --quiet 2>nul
 )
 
 echo.
@@ -78,10 +84,16 @@ if %errorlevel% neq 0 (
     set INSTALL_OK=0
 )
 
+python -c "import customtkinter; print('[OK] customtkinter')" 2>nul
+if %errorlevel% neq 0 (
+    echo [FAIL] customtkinter
+    set INSTALL_OK=0
+)
+
 if %INSTALL_OK%==0 (
     echo.
     echo [!] Some packages failed to install.
-    echo Try running: python -m pip install pyautogui pygetwindow pyperclip
+    echo Try running: python -m pip install pyautogui pygetwindow pyperclip customtkinter
     echo.
     pause
     exit /b 1

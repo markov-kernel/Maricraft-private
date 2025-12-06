@@ -1,0 +1,2 @@
+# Maricraft: Peaceful
+difficulty peaceful

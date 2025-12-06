@@ -8,6 +8,7 @@ dependencies = [
     "pyautogui>=0.9.54",
     "pygetwindow>=0.0.9",
     "pyperclip>=1.8.2",
+    "customtkinter>=5.2.0",
 ]
 
 [project.optional-dependencies]

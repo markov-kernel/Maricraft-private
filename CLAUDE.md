@@ -18,7 +18,12 @@ This provides a complete map of all documentation including command syntax and c
 
 ## Project Overview
 
-Maricraft is a **Windows-only**, kid-friendly Minecraft command helper. It provides a button-based Tkinter GUI where users click pre-programmed buttons to send commands to Minecraft Java Edition. The app uses pyautogui for Windows automation.
+Maricraft is a **Windows-only**, kid-friendly Minecraft command helper. It provides a button-based Tkinter GUI where users click pre-programmed buttons to send commands to Minecraft Java Edition.
+
+**Key Features (v2.0.0):**
+- **Datapack Mode**: Buttons send `/function maricraft:xxx` calls for instant execution
+- **Auto-Update Check**: Checks GitHub for new versions on startup
+- **64 Pre-built Buttons**: Organized in 4 categories
 
 ## Quick Commands
 
@@ -41,12 +46,37 @@ Or on Windows, just double-click `build.bat`.
 
 | Module | Purpose |
 |--------|---------|
-| `maricraft/ui.py` | Main entry point: button-based Tkinter GUI |
-| `maricraft/commands.py` | Pre-defined command buttons organized by category |
-| `maricraft/automator.py` | `WindowsAutomator`: pyautogui automation for Minecraft |
+| `maricraft/__main__.py` | Entry point with error handling |
+| `maricraft/ui.py` | Tkinter GUI, button grid, settings, install dialog |
+| `maricraft/commands.py` | CommandButton definitions with function_id mapping |
+| `maricraft/automator.py` | `WindowsAutomator`: pyautogui + Win32 clipboard |
+| `maricraft/datapack.py` | Datapack installation, detection, generation |
+| `maricraft/version.py` | Version constant and GitHub update check |
 | `maricraft/constants.py` | Timing, window dimensions, UI constants |
-| `maricraft/settings.py` | Simple settings dataclass (chat_key, delay_ms) |
+| `maricraft/settings.py` | Settings dataclass (chat_key, delay_ms) |
 | `maricraft/logger.py` | Timestamped file logging |
+
+### Datapack System
+
+Buttons use a Minecraft datapack with 64 mcfunction files. Each button click sends a single `/function maricraft:xxx` command instead of multiple raw commands.
+
+**Datapack location:**
+```
+maricraft/resources/maricraft_datapack/
+├── pack.mcmeta                    # pack_format: 48 (MC 1.21.x)
+├── version.txt
+└── data/maricraft/function/
+    ├── buffs/                     # 16 functions
+    ├── gear/                      # 16 functions
+    ├── teleport/                  # 16 functions
+    └── world/                     # 16 functions
+```
+
+**Benefits:**
+- Single command per button (vs 1-7 raw commands)
+- Faster execution (~100ms vs ~3.5s for GOD MODE)
+- No 256-char limit concerns
+- Atomic server-side execution
 
 ### Button Categories
 
@@ -65,12 +95,17 @@ Edit `maricraft/commands.py`:
 
 ```python
 CommandButton(
-    name="Button Label",      # Shown on button
-    description="Tooltip",    # Shown on hover
-    commands=["/command1", "/command2"],  # Commands to execute
-    color="#FF6B6B"           # Button background color (hex)
+    name="Button Label",
+    description="Tooltip",
+    commands=["/command1", "/command2"],  # Raw commands (fallback)
+    color="#FF6B6B",
+    function_id="maricraft:category/function_name"  # Datapack function
 )
 ```
+
+After adding a button:
+1. Create matching `.mcfunction` file in `maricraft/resources/maricraft_datapack/data/maricraft/function/`
+2. Rebuild the app if using PyInstaller
 
 ## Minecraft Command Rules
 
@@ -99,8 +134,8 @@ CommandButton(
 
 | Input | Output | Reason |
 |-------|--------|--------|
-| `^` | `^0` | Bare caret invalid |
-| `~` | `~0` | Prevents edge case errors |
+| `^` | `^0` | Bare caret invalid in Minecraft |
+| `~` | `~0` | Normalized for consistency |
 | `~+5` | `~5` | Minecraft rejects `+` after `~` or `^` |
 
 ### Coordinate Rules
@@ -109,11 +144,24 @@ CommandButton(
 - Look-direction placement: `execute at @s run tp @s ^0 ^0 ^D`
 - Always use explicit zeros: `^0 ^0 ^10` not `^ ^ ^10`
 
+## Version and Updates
+
+- Version defined in `maricraft/version.py` as `__version__`
+- `version.json` in repo root contains version info for update checking
+- App checks GitHub on startup and shows banner if update available
+
+To release a new version:
+1. Update `__version__` in `maricraft/version.py`
+2. Update `version.json` in repo root
+3. Build with `pyinstaller maricraft.spec --clean`
+4. Create GitHub release with the new `.exe`
+
 ## Windows Requirements
 
 1. **Minecraft Java Edition** must be running
 2. The app will automatically focus the Minecraft window
 3. For best results, run Minecraft in **windowed mode** (not fullscreen)
+4. **Datapack must be installed** in the world (use "Install Datapack" button)
 
 ## Dependencies
 
@@ -123,19 +171,33 @@ pygetwindow>=0.0.9   # Window focus
 pyperclip>=1.8.2     # Clipboard
 ```
 
-## Documentation
+## File Structure
 
 ```
 Maricraft/
 ├── CLAUDE.md                              # This file
 ├── README.md                              # User guide
+├── version.json                           # Version info for update check
 ├── INSTALL.bat                            # Installer script
 ├── RUN_MARICRAFT.bat                      # Launch script
 ├── DEBUG_MARICRAFT.bat                    # Debug script
 ├── build.bat                              # PyInstaller build script
 ├── maricraft.spec                         # PyInstaller config
+├── maricraft/
+│   ├── __init__.py                        # Package init, exports __version__
+│   ├── __main__.py                        # Entry point
+│   ├── ui.py                              # Tkinter GUI
+│   ├── commands.py                        # 64 button definitions
+│   ├── automator.py                       # Windows automation
+│   ├── datapack.py                        # Datapack management
+│   ├── version.py                         # Version and update check
+│   ├── constants.py                       # UI constants
+│   ├── settings.py                        # Settings dataclass
+│   ├── logger.py                          # File logging
+│   └── resources/
+│       └── maricraft_datapack/            # Bundled datapack (64 mcfunction files)
 └── documentation/
-    ├── INDEX.md                           # START HERE - documentation index
+    ├── INDEX.md                           # Documentation index
     ├── 1.21.1-command-playbook.md         # Minecraft command reference
     ├── minecraft-chat-cheatsheet.txt      # Quick syntax reference
     └── example-netherite-gear.md          # Example gear templates
@@ -146,3 +208,5 @@ Maricraft/
 1. Unzip the Maricraft folder
 2. Double-click `INSTALL.bat` (installs Python packages)
 3. Double-click `RUN_MARICRAFT.bat`
+4. Click "Install Datapack" and select your Minecraft world(s)
+5. In Minecraft, run `/reload` or restart the world

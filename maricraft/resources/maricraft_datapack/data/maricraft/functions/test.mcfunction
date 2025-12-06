@@ -1,0 +1,1 @@
+say Maricraft test works!
