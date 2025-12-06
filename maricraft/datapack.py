@@ -176,6 +176,52 @@ def get_minecraft_saves_path() -> Optional[Path]:
     return mc_path if mc_path.exists() else None
 
 
+def get_bedrock_worlds_path() -> Optional[Path]:
+    """Get Bedrock Edition worlds directory on Windows.
+
+    Bedrock Edition stores worlds in:
+    %LOCALAPPDATA%/Packages/Microsoft.MinecraftUWP_8wekyb3d8bbwe/LocalState/games/com.mojang/minecraftWorlds
+    """
+    localappdata = os.environ.get("LOCALAPPDATA")
+    if not localappdata:
+        return None
+
+    bedrock_path = (
+        Path(localappdata) / "Packages" /
+        "Microsoft.MinecraftUWP_8wekyb3d8bbwe" /
+        "LocalState" / "games" / "com.mojang" / "minecraftWorlds"
+    )
+    return bedrock_path if bedrock_path.exists() else None
+
+
+def list_bedrock_worlds() -> List[Tuple[str, Path]]:
+    """List Bedrock Edition worlds with their display names.
+
+    Bedrock worlds have random folder names, but the actual world name
+    is stored in a levelname.txt file inside each folder.
+
+    Returns:
+        List of (world_name, world_path) tuples, sorted alphabetically.
+    """
+    worlds_path = get_bedrock_worlds_path()
+    if not worlds_path:
+        return []
+
+    worlds = []
+    for folder in worlds_path.iterdir():
+        if folder.is_dir():
+            levelname_file = folder / "levelname.txt"
+            if levelname_file.exists():
+                try:
+                    world_name = levelname_file.read_text(encoding="utf-8").strip()
+                    worlds.append((world_name, folder))
+                except Exception:
+                    # Fallback to folder name if levelname.txt is unreadable
+                    worlds.append((folder.name, folder))
+
+    return sorted(worlds, key=lambda x: x[0].lower())
+
+
 def get_all_minecraft_instances() -> List[Tuple[str, Path, Optional[str]]]:
     """Find all Minecraft installations (vanilla + CurseForge).
 
@@ -217,6 +263,12 @@ def get_all_minecraft_instances() -> List[Tuple[str, Path, Optional[str]]]:
                     if saves.exists():
                         version = detect_minecraft_version(instance_dir)
                         instances.append((f"CurseForge: {instance_dir.name}", saves, version))
+
+    # 4. Bedrock Edition
+    bedrock_worlds = get_bedrock_worlds_path()
+    if bedrock_worlds:
+        # Use "bedrock" as special version identifier
+        instances.append(("Bedrock Edition", bedrock_worlds, "bedrock"))
 
     # Sort by instance name (case-insensitive)
     return sorted(instances, key=lambda x: x[0].lower())
@@ -587,35 +639,60 @@ def needs_datapack_update(world_path: Path) -> bool:
 def auto_install_all_datapacks() -> dict:
     """Automatically install/update datapack to all worlds that need it.
 
-    Scans all Minecraft instances (vanilla + CurseForge) and installs
-    or updates the datapack in any world that doesn't have it or has
+    Scans all Minecraft instances (vanilla + CurseForge + Bedrock) and installs
+    or updates the datapack/behavior pack in any world that doesn't have it or has
     an older version.
 
     Returns:
         Dict with keys:
-            - installed: list of world names where datapack was newly installed
-            - updated: list of world names where datapack was updated
+            - installed: list of world names where pack was newly installed
+            - updated: list of world names where pack was updated
             - failed: list of (world_name, error) tuples
             - skipped: list of world names already up to date
     """
     results = {"installed": [], "updated": [], "failed": [], "skipped": []}
 
     for instance_name, saves_path, mc_version in get_all_minecraft_instances():
-        for world_name, world_path in list_worlds(saves_path):
+        is_bedrock = mc_version == "bedrock"
+
+        # Get worlds list - Bedrock uses different detection
+        if is_bedrock:
+            worlds = list_bedrock_worlds()
+        else:
+            worlds = list_worlds(saves_path)
+
+        for world_name, world_path in worlds:
             try:
-                if not needs_datapack_update(world_path):
-                    results["skipped"].append(world_name)
-                    continue
+                if is_bedrock:
+                    # Bedrock: use behavior pack
+                    if not needs_behavior_pack_update(world_path):
+                        results["skipped"].append(world_name)
+                        continue
 
-                was_installed = is_datapack_installed(world_path)
+                    was_installed = is_behavior_pack_installed(world_path)
 
-                if install_datapack(world_path, mc_version=mc_version):
-                    if was_installed:
-                        results["updated"].append(world_name)
+                    if install_behavior_pack(world_path):
+                        if was_installed:
+                            results["updated"].append(world_name)
+                        else:
+                            results["installed"].append(world_name)
                     else:
-                        results["installed"].append(world_name)
+                        results["failed"].append((world_name, "Behavior pack installation failed"))
                 else:
-                    results["failed"].append((world_name, "Installation failed"))
+                    # Java: use datapack
+                    if not needs_datapack_update(world_path):
+                        results["skipped"].append(world_name)
+                        continue
+
+                    was_installed = is_datapack_installed(world_path)
+
+                    if install_datapack(world_path, mc_version=mc_version):
+                        if was_installed:
+                            results["updated"].append(world_name)
+                        else:
+                            results["installed"].append(world_name)
+                    else:
+                        results["failed"].append((world_name, "Datapack installation failed"))
             except Exception as e:
                 results["failed"].append((world_name, str(e)))
 
@@ -634,3 +711,165 @@ def get_all_buttons() -> List["CommandButton"]:
     for category in ALL_CATEGORIES:
         buttons.extend(category.buttons)
     return buttons
+
+
+# === BEDROCK EDITION SUPPORT ===
+
+BEHAVIOR_PACK_NAME = "maricraft_behavior"
+BEHAVIOR_PACK_DESCRIPTION = "Maricraft Helper - Kid-friendly Minecraft commands"
+
+# Fixed UUIDs for the behavior pack (Bedrock requires UUIDs)
+BEHAVIOR_PACK_UUID = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+BEHAVIOR_PACK_MODULE_UUID = "b2c3d4e5-f6a7-8901-bcde-f12345678901"
+
+
+def get_bundled_behavior_pack_path() -> Optional[Path]:
+    """Get path to the bundled behavior pack in the resources folder.
+
+    Works both in development and PyInstaller builds.
+    """
+    if getattr(sys, 'frozen', False):
+        base_path = Path(sys._MEIPASS)  # type: ignore
+    else:
+        base_path = Path(__file__).parent
+
+    pack_path = base_path / "resources" / BEHAVIOR_PACK_NAME
+    if pack_path.exists():
+        return pack_path
+    return None
+
+
+def get_bundled_behavior_pack_version() -> str:
+    """Get version from bundled behavior pack."""
+    pack_path = get_bundled_behavior_pack_path()
+    if pack_path is None:
+        return "0.0.0"
+
+    version_file = pack_path / "version.txt"
+    if version_file.exists():
+        return version_file.read_text().strip()
+    return "0.0.0"
+
+
+def is_behavior_pack_installed(world_path: Path) -> bool:
+    """Check if Maricraft behavior pack is installed in a Bedrock world."""
+    pack_path = world_path / "behavior_packs" / BEHAVIOR_PACK_NAME / "manifest.json"
+    return pack_path.exists()
+
+
+def get_behavior_pack_version(world_path: Path) -> Optional[str]:
+    """Get the installed behavior pack version from a Bedrock world."""
+    version_file = world_path / "behavior_packs" / BEHAVIOR_PACK_NAME / "version.txt"
+    if version_file.exists():
+        return version_file.read_text().strip()
+    return None
+
+
+def needs_behavior_pack_update(world_path: Path) -> bool:
+    """Check if a Bedrock world needs behavior pack install/update."""
+    installed = get_behavior_pack_version(world_path)
+    bundled = get_bundled_behavior_pack_version()
+
+    if not installed:
+        return True
+
+    return _compare_versions(installed, bundled) < 0
+
+
+def generate_behavior_pack(output_path: Path, buttons: List["CommandButton"], version: str) -> Path:
+    """Generate Bedrock behavior pack with mcfunction files.
+
+    Args:
+        output_path: Directory to create behavior pack in.
+        buttons: List of CommandButton objects with function_id set.
+        version: Version string for version.txt.
+
+    Returns:
+        Path to the created behavior pack folder.
+    """
+    pack_dir = output_path / BEHAVIOR_PACK_NAME
+    functions_dir = pack_dir / "functions"
+
+    # Parse version for manifest
+    try:
+        version_parts = [int(x) for x in version.split(".")[:3]]
+        while len(version_parts) < 3:
+            version_parts.append(0)
+    except ValueError:
+        version_parts = [1, 0, 0]
+
+    # Create manifest.json (Bedrock format)
+    manifest = {
+        "format_version": 2,
+        "header": {
+            "name": "Maricraft Helper",
+            "description": BEHAVIOR_PACK_DESCRIPTION,
+            "uuid": BEHAVIOR_PACK_UUID,
+            "version": version_parts,
+            "min_engine_version": [1, 20, 0]
+        },
+        "modules": [{
+            "type": "data",
+            "uuid": BEHAVIOR_PACK_MODULE_UUID,
+            "version": version_parts
+        }]
+    }
+
+    pack_dir.mkdir(parents=True, exist_ok=True)
+    (pack_dir / "manifest.json").write_text(json.dumps(manifest, indent=2))
+    (pack_dir / "version.txt").write_text(version)
+
+    # Create mcfunction files using bedrock_commands
+    for button in buttons:
+        if not button.function_id:
+            continue
+
+        # Parse function_id: "maricraft:buffs/god_mode" -> "buffs/god_mode"
+        func_id = button.function_id
+        if ":" in func_id:
+            func_id = func_id.split(":", 1)[1]
+
+        func_path = functions_dir / (func_id + ".mcfunction")
+        func_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Use bedrock_commands if available, otherwise fall back to commands
+        cmds = button.bedrock_commands if button.bedrock_commands else button.commands
+        content = f"# Maricraft: {button.name}\n"
+        for cmd in cmds:
+            content += cmd.lstrip("/") + "\n"
+
+        func_path.write_text(content)
+
+    return pack_dir
+
+
+def install_behavior_pack(world_path: Path, source_path: Optional[Path] = None) -> bool:
+    """Install/update the behavior pack in a Bedrock world.
+
+    Args:
+        world_path: Path to the Bedrock world folder.
+        source_path: Path to behavior pack folder. If None, uses bundled pack.
+
+    Returns:
+        True if installation succeeded.
+    """
+    if source_path is None:
+        source_path = get_bundled_behavior_pack_path()
+
+    if source_path is None or not source_path.exists():
+        return False
+
+    dest = world_path / "behavior_packs" / BEHAVIOR_PACK_NAME
+    try:
+        # Create behavior_packs folder if it doesn't exist
+        dest.parent.mkdir(parents=True, exist_ok=True)
+
+        # Remove existing pack if present
+        if dest.exists():
+            shutil.rmtree(dest)
+
+        # Copy behavior pack
+        shutil.copytree(source_path, dest)
+        return True
+    except Exception:
+        return False

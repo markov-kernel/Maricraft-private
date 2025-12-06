@@ -250,32 +250,58 @@ class App(ctk.CTk):
             return True
         return query in button.name.lower() or query in button.description.lower()
 
+    def _detect_bedrock_window(self) -> bool:
+        """Check if Minecraft Bedrock Edition is the active window.
+
+        Bedrock's window title is just "Minecraft"
+        Java Edition window title includes version like "Minecraft 1.20.1"
+        """
+        try:
+            import pygetwindow as gw
+            active = gw.getActiveWindow()
+            if active and active.title:
+                # Bedrock window title is exactly "Minecraft" (no version)
+                # Java has patterns like "Minecraft 1.20.1" or "Minecraft* 1.21.1"
+                title = active.title.strip()
+                return title == "Minecraft"
+        except Exception:
+            pass
+        return False
+
     def _on_button_click(self, button: CommandButton) -> None:
         """Handle command button click."""
         if self.is_running:
             self._show_message("Please wait for the current command to finish.", "info")
             return
 
-        # Check datapack warning
-        if self.app_state.settings.use_datapack_mode and button.function_id:
-            if not self.app_state.datapack_warning_shown and not check_any_world_has_datapack():
-                self.app_state.datapack_warning_shown = True
-                result = self._ask_yes_no(
-                    "Datapack Not Found",
-                    "The Maricraft datapack was not found in any Minecraft world.\n\n"
-                    "Commands may not work without the datapack installed.\n\n"
-                    "Would you like to install the datapack now?"
-                )
-                if result:
-                    self._show_install_datapack()
-                    return
+        # Detect which edition is active
+        is_bedrock = self._detect_bedrock_window()
 
-            # Send function call
-            function_cmd = f"/function {button.function_id}"
-            self._execute_commands([function_cmd], button.name)
+        if is_bedrock:
+            # Bedrock Edition: use bedrock_commands if available, otherwise fall back
+            commands = button.bedrock_commands if button.bedrock_commands else button.commands
+            self._execute_commands(commands, button.name)
         else:
-            # Legacy mode
-            self._execute_commands(button.commands, button.name)
+            # Java Edition: use datapack function if enabled, otherwise legacy mode
+            if self.app_state.settings.use_datapack_mode and button.function_id:
+                if not self.app_state.datapack_warning_shown and not check_any_world_has_datapack():
+                    self.app_state.datapack_warning_shown = True
+                    result = self._ask_yes_no(
+                        "Datapack Not Found",
+                        "The Maricraft datapack was not found in any Minecraft world.\n\n"
+                        "Commands may not work without the datapack installed.\n\n"
+                        "Would you like to install the datapack now?"
+                    )
+                    if result:
+                        self._show_install_datapack()
+                        return
+
+                # Send function call
+                function_cmd = f"/function {button.function_id}"
+                self._execute_commands([function_cmd], button.name)
+            else:
+                # Legacy mode
+                self._execute_commands(button.commands, button.name)
 
     def _on_favorite_toggle(self, function_id: str) -> bool:
         """Handle favorite star toggle. Returns new favorite state."""
