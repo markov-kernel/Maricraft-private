@@ -1,14 +1,5 @@
-# Maricraft: Full Tool Set
-give @s netherite_pickaxe 1
-enchant @s efficiency 5
-enchant @s fortune 3
-enchant @s unbreaking 3
-give @s netherite_shovel 1
-enchant @s efficiency 5
-enchant @s unbreaking 3
-give @s netherite_axe 1
-enchant @s efficiency 5
-enchant @s unbreaking 3
-give @s netherite_hoe 1
-enchant @s efficiency 5
-enchant @s unbreaking 3
+# Maricraft: Full Tool Set (using loot tables for reliable enchanting)
+loot give @s loot "maricraft/gear/pickaxe"
+loot give @s loot "maricraft/gear/shovel"
+loot give @s loot "maricraft/gear/axe"
+loot give @s loot "maricraft/gear/hoe"

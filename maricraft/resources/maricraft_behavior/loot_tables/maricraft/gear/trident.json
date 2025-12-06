@@ -1,0 +1,24 @@
+{
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "item",
+          "name": "minecraft:trident",
+          "functions": [
+            {
+              "function": "specific_enchants",
+              "enchants": [
+                {"id": "loyalty", "level": 3},
+                {"id": "channeling", "level": 1},
+                {"id": "impaling", "level": 5},
+                {"id": "unbreaking", "level": 3}
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

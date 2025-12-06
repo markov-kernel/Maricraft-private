@@ -1,7 +1,3 @@
-# Maricraft: Super Bow
-give @s bow 1
-enchant @s power 5
-enchant @s flame 1
-enchant @s infinity 1
-enchant @s unbreaking 3
+# Maricraft: Super Bow (using loot table for reliable enchanting)
+loot give @s loot "maricraft/gear/super_bow"
 give @s arrow 64

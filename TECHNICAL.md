@@ -22,7 +22,7 @@ This document provides detailed technical information for developers working on 
 
 ## Architecture Overview
 
-Maricraft is a Windows-only Python application that automates sending commands to Minecraft Java Edition. It uses a button-based Tkinter GUI where users click pre-programmed buttons to execute Minecraft commands.
+Maricraft is a Windows-only Python application that automates sending commands to Minecraft (Java and Bedrock editions). It uses a button-based CustomTkinter GUI where users click pre-programmed buttons to execute Minecraft commands.
 
 ### Data Flow
 
@@ -31,7 +31,7 @@ User clicks button
        │
        ▼
 ┌─────────────────┐
-│   ui.py         │  Button click handler
+│  ui/app.py      │  Button click handler
 │   App class     │
 └────────┬────────┘
          │
@@ -56,12 +56,13 @@ User clicks button
 
 | Component | Technology |
 |-----------|------------|
-| GUI | Tkinter (Python standard library) |
+| GUI | CustomTkinter (modern Tkinter wrapper) |
 | Window Management | pygetwindow |
 | Keyboard Automation | Win32 SendInput API (via ctypes) |
 | Clipboard | Win32 Clipboard API (via ctypes) |
 | Fallback Keyboard | pyautogui |
 | Fallback Clipboard | pyperclip |
+| Process Detection | Windows `tasklist` command (via subprocess) |
 
 ---
 
@@ -71,11 +72,18 @@ User clicks button
 maricraft/
 ├── __init__.py        # Package marker (empty)
 ├── __main__.py        # Entry point with error handling
-├── ui.py              # Tkinter GUI (App, ScrollableFrame, ToolTip)
+├── ui/                # CustomTkinter GUI package
+│   ├── __init__.py
+│   ├── app.py         # Main App class, Bedrock detection
+│   ├── state.py       # JSON state persistence
+│   ├── theme.py       # Color/font definitions
+│   └── components/    # UI widgets
 ├── commands.py        # Pre-defined command buttons and categories
 ├── automator.py       # Windows automation (WindowsAutomator)
 ├── constants.py       # Timing constants, window titles
 ├── settings.py        # Settings dataclass
+├── datapack.py        # Datapack/behavior pack installation
+├── version.py         # Version constant + GitHub update check
 └── logger.py          # File logging
 ```
 
@@ -83,12 +91,14 @@ maricraft/
 
 ```
 __main__.py
-    └── ui.py
+    └── ui/app.py
             ├── commands.py
             ├── automator.py
             │       ├── constants.py
             │       ├── settings.py
             │       └── logger.py
+            ├── datapack.py
+            ├── version.py
             └── settings.py
 ```
 
@@ -311,11 +321,26 @@ Minecraft 1.21+ requires the `levels` sub-key for enchantments:
 
 ## GUI Implementation
 
+### Technology Update (v2.0.0+)
+
+Maricraft uses **CustomTkinter** instead of native Tkinter:
+
+| Component | Technology |
+|-----------|------------|
+| GUI Framework | CustomTkinter (modern Tkinter wrapper) |
+| Main Window | `CTk` (not `tk.Tk`) |
+| Buttons | `CTkButton` with hover effects |
+| Frames | `CTkFrame`, `CTkScrollableFrame` |
+| Theme | Kid-friendly colors via `ui/theme.py` |
+
 ### Main Window (App class)
 
 ```python
-class App(tk.Tk):
+from customtkinter import CTk
+
+class App(CTk):
     def __init__(self):
+        super().__init__()
         # Window setup
         self.title("Maricraft")
         self.geometry("800x600")
@@ -323,7 +348,7 @@ class App(tk.Tk):
 
         # Components
         self.header_frame    # Title + Settings button
-        self.scroll_frame    # ScrollableFrame with buttons
+        self.scroll_frame    # Scrollable container with buttons
         self.status_bar      # Status label at bottom
 ```
 

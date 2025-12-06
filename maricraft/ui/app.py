@@ -313,9 +313,16 @@ class App(ctk.CTk):
         is_bedrock = self._is_bedrock_mode()
 
         if is_bedrock:
-            # Bedrock Edition: use bedrock_commands if available, otherwise fall back
-            commands = button.bedrock_commands if button.bedrock_commands else button.commands
-            self._execute_commands(commands, button.name)
+            # Bedrock Edition: use behavior pack function if enabled, otherwise legacy mode
+            if self.app_state.settings.use_datapack_mode and button.function_id:
+                # Bedrock function syntax: no namespace prefix (e.g., "buffs/god_mode")
+                func_name = button.function_id.split(":", 1)[1] if ":" in button.function_id else button.function_id
+                function_cmd = f"/function {func_name}"
+                self._execute_commands([function_cmd], button.name)
+            else:
+                # Legacy mode: send individual commands
+                commands = button.bedrock_commands if button.bedrock_commands else button.commands
+                self._execute_commands(commands, button.name)
         else:
             # Java Edition: use datapack function if enabled, otherwise legacy mode
             if self.app_state.settings.use_datapack_mode and button.function_id:

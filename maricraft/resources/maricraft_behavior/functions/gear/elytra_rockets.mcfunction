@@ -1,5 +1,3 @@
-# Maricraft: Elytra + Rockets
-give @s elytra 1
-enchant @s unbreaking 3
-enchant @s mending 1
+# Maricraft: Elytra + Rockets (using loot table for reliable enchanting)
+loot give @s loot "maricraft/gear/elytra"
 give @s firework_rocket 64

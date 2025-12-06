@@ -671,5 +671,412 @@ WORLD_CONTROL = CommandCategory(
 )
 
 
+# === CATEGORY 5: BUILDING & CREATION ===
+BUILDING_CREATION = CommandCategory(
+    name="Building & Creation",
+    buttons=[
+        CommandButton(
+            name="Clear Area 10x10",
+            description="Remove all blocks in a 10x10x10 cube around you",
+            commands=["/fill ~-5 ~ ~-5 ~5 ~10 ~5 air"],
+            color="#8BC34A",
+            function_id="maricraft:building/clear_area"
+            # Same for Bedrock
+        ),
+        CommandButton(
+            name="Glass Platform",
+            description="Create a glass floor beneath you",
+            commands=["/fill ~-4 ~-1 ~-4 ~4 ~-1 ~4 glass"],
+            color="#81D4FA",
+            function_id="maricraft:building/glass_platform"
+            # Same for Bedrock
+        ),
+        CommandButton(
+            name="Stone House",
+            description="Build a small stone house instantly",
+            commands=[
+                "/fill ~2 ~ ~2 ~8 ~4 ~8 stone hollow",
+                "/fill ~2 ~5 ~2 ~8 ~5 ~8 stone_bricks",
+                "/setblock ~5 ~ ~2 oak_door[half=lower]",
+                "/setblock ~5 ~1 ~2 oak_door[half=upper]",
+                "/fill ~3 ~1 ~8 ~4 ~2 ~8 glass",
+                "/fill ~6 ~1 ~8 ~7 ~2 ~8 glass",
+            ],
+            color="#9E9E9E",
+            function_id="maricraft:building/stone_house",
+            bedrock_commands=[
+                "/fill ~2 ~ ~2 ~8 ~4 ~8 stone 0 hollow",
+                "/fill ~2 ~5 ~2 ~8 ~5 ~8 stonebrick",
+                "/setblock ~5 ~ ~2 wooden_door",
+                "/fill ~3 ~1 ~8 ~4 ~2 ~8 glass",
+                "/fill ~6 ~1 ~8 ~7 ~2 ~8 glass",
+            ]
+        ),
+        CommandButton(
+            name="Wood Bridge 20",
+            description="Build a wooden bridge in front of you (20 blocks)",
+            commands=["/fill ^-1 ^-1 ^1 ^1 ^-1 ^20 oak_planks"],
+            color="#8D6E63",
+            function_id="maricraft:building/wood_bridge",
+            bedrock_commands=["/fill ^-1 ^-1 ^1 ^1 ^-1 ^20 planks"]
+        ),
+        CommandButton(
+            name="Light Up Area",
+            description="Place sea lanterns in a grid pattern",
+            commands=[
+                "/setblock ~-4 ~-1 ~-4 sea_lantern",
+                "/setblock ~4 ~-1 ~-4 sea_lantern",
+                "/setblock ~-4 ~-1 ~4 sea_lantern",
+                "/setblock ~4 ~-1 ~4 sea_lantern",
+                "/setblock ~ ~-1 ~ sea_lantern",
+            ],
+            color="#FFEB3B",
+            function_id="maricraft:building/light_up"
+            # Same for Bedrock
+        ),
+        CommandButton(
+            name="Water Pool",
+            description="Create a small water pool",
+            commands=[
+                "/fill ~-3 ~-2 ~-3 ~3 ~-2 ~3 stone",
+                "/fill ~-2 ~-1 ~-2 ~2 ~-1 ~2 water",
+            ],
+            color="#2196F3",
+            function_id="maricraft:building/water_pool"
+            # Same for Bedrock
+        ),
+        CommandButton(
+            name="Lava Moat",
+            description="Dig a moat and fill with lava (careful!)",
+            commands=[
+                "/fill ~-6 ~-2 ~-6 ~6 ~-1 ~-5 lava",
+                "/fill ~-6 ~-2 ~5 ~6 ~-1 ~6 lava",
+                "/fill ~-6 ~-2 ~-4 ~-5 ~-1 ~4 lava",
+                "/fill ~5 ~-2 ~-4 ~6 ~-1 ~4 lava",
+            ],
+            color="#FF5722",
+            function_id="maricraft:building/lava_moat"
+            # Same for Bedrock
+        ),
+        CommandButton(
+            name="Remove Water",
+            description="Drain all water in a 20-block radius",
+            commands=["/fill ~-10 ~-5 ~-10 ~10 ~5 ~10 air replace water"],
+            color="#4FC3F7",
+            function_id="maricraft:building/remove_water"
+            # Same for Bedrock
+        ),
+    ]
+)
+
+
+# === CATEGORY 6: FRIENDLY MOBS ===
+FRIENDLY_MOBS = CommandCategory(
+    name="Friendly Mobs",
+    buttons=[
+        CommandButton(
+            name="Wolf Pack",
+            description="Spawn 5 tamed wolves (Java only - Bedrock: bring bones!)",
+            commands=[
+                "/summon wolf ~ ~ ~ {Tame:1b,CollarColor:14}",
+                "/summon wolf ~1 ~ ~ {Tame:1b,CollarColor:11}",
+                "/summon wolf ~-1 ~ ~ {Tame:1b,CollarColor:1}",
+                "/summon wolf ~ ~ ~1 {Tame:1b,CollarColor:4}",
+                "/summon wolf ~ ~ ~-1 {Tame:1b,CollarColor:5}",
+            ],
+            color="#A1887F",
+            function_id="maricraft:mobs/wolf_pack",
+            bedrock_commands=[
+                "/summon wolf ~ ~ ~",
+                "/summon wolf ~1 ~ ~",
+                "/summon wolf ~-1 ~ ~",
+                "/summon wolf ~ ~ ~1",
+                "/summon wolf ~ ~ ~-1",
+                "/give @s bone 10",
+            ]
+        ),
+        CommandButton(
+            name="Cat Friend",
+            description="Spawn a tamed cat (Java only - Bedrock: bring fish!)",
+            commands=['/summon cat ~ ~ ~ {Tame:1b,variant:"minecraft:black"}'],
+            color="#FF8A65",
+            function_id="maricraft:mobs/cat_friend",
+            bedrock_commands=[
+                "/summon cat ~ ~ ~",
+                "/give @s fish 5",
+            ]
+        ),
+        CommandButton(
+            name="Horse + Saddle",
+            description="Spawn a saddled horse ready to ride",
+            commands=['/summon horse ~ ~ ~ {Tame:1b,SaddleItem:{id:"minecraft:saddle",count:1}}'],
+            color="#795548",
+            function_id="maricraft:mobs/horse_saddle",
+            bedrock_commands=[
+                "/summon horse ~ ~ ~ minecraft:ageable_grow_up",
+                "/give @s saddle 1",
+            ]
+        ),
+        CommandButton(
+            name="Parrot Party",
+            description="Spawn 3 colorful parrots",
+            commands=[
+                "/summon parrot ~ ~ ~ {Variant:0}",
+                "/summon parrot ~1 ~ ~ {Variant:1}",
+                "/summon parrot ~-1 ~ ~ {Variant:2}",
+            ],
+            color="#4CAF50",
+            function_id="maricraft:mobs/parrot_party",
+            bedrock_commands=[
+                "/summon parrot ~ ~ ~",
+                "/summon parrot ~1 ~ ~",
+                "/summon parrot ~-1 ~ ~",
+            ]
+        ),
+        CommandButton(
+            name="Iron Golem",
+            description="Spawn a protective iron golem",
+            commands=["/summon iron_golem ~ ~ ~"],
+            color="#78909C",
+            function_id="maricraft:mobs/iron_golem"
+            # Same for Bedrock
+        ),
+        CommandButton(
+            name="Snow Golem",
+            description="Spawn a snow golem friend",
+            commands=["/summon snow_golem ~ ~ ~"],
+            color="#ECEFF1",
+            function_id="maricraft:mobs/snow_golem"
+            # Same for Bedrock
+        ),
+        CommandButton(
+            name="Dolphin",
+            description="Spawn a friendly dolphin (needs water!)",
+            commands=["/summon dolphin ~ ~ ~"],
+            color="#00BCD4",
+            function_id="maricraft:mobs/dolphin"
+            # Same for Bedrock
+        ),
+        CommandButton(
+            name="Bee Hive",
+            description="Spawn bees with a bee nest",
+            commands=[
+                "/setblock ~ ~2 ~ bee_nest",
+                "/summon bee ~ ~3 ~",
+                "/summon bee ~1 ~3 ~",
+                "/summon bee ~-1 ~3 ~",
+            ],
+            color="#FFC107",
+            function_id="maricraft:mobs/bee_hive"
+            # Same for Bedrock
+        ),
+    ]
+)
+
+
+# === CATEGORY 7: FUN & COSMETIC ===
+FUN_COSMETIC = CommandCategory(
+    name="Fun & Cosmetic",
+    buttons=[
+        CommandButton(
+            name="Firework Show",
+            description="Launch colorful fireworks all around",
+            commands=[
+                '/summon firework_rocket ~ ~1 ~ {LifeTime:20,FireworksItem:{id:"minecraft:firework_rocket",count:1,components:{"minecraft:fireworks":{explosions:[{shape:"large_ball",colors:[I;16711680],has_trail:1b}],flight_duration:1b}}}}',
+                '/summon firework_rocket ~3 ~1 ~ {LifeTime:25,FireworksItem:{id:"minecraft:firework_rocket",count:1,components:{"minecraft:fireworks":{explosions:[{shape:"star",colors:[I;65280],has_trail:1b}],flight_duration:1b}}}}',
+                '/summon firework_rocket ~-3 ~1 ~ {LifeTime:30,FireworksItem:{id:"minecraft:firework_rocket",count:1,components:{"minecraft:fireworks":{explosions:[{shape:"burst",colors:[I;255],has_trail:1b}],flight_duration:1b}}}}',
+                '/summon firework_rocket ~ ~1 ~3 {LifeTime:35,FireworksItem:{id:"minecraft:firework_rocket",count:1,components:{"minecraft:fireworks":{explosions:[{shape:"large_ball",colors:[I;16776960],has_twinkle:1b}],flight_duration:1b}}}}',
+            ],
+            color="#FF4081",
+            function_id="maricraft:fun/firework_show",
+            bedrock_commands=[
+                "/summon fireworks_rocket ~ ~1 ~",
+                "/summon fireworks_rocket ~3 ~1 ~",
+                "/summon fireworks_rocket ~-3 ~1 ~",
+                "/summon fireworks_rocket ~ ~1 ~3",
+            ]
+        ),
+        CommandButton(
+            name="Lightning Strike",
+            description="Strike lightning where you stand!",
+            commands=["/summon lightning_bolt ~ ~ ~"],
+            color="#FFC107",
+            function_id="maricraft:fun/lightning_strike"
+            # Same for Bedrock
+        ),
+        CommandButton(
+            name="Giant Jump",
+            description="Launch yourself super high into the air!",
+            commands=[
+                "/effect give @s levitation 2 50 true",
+                "/effect give @s slow_falling 30 0 true",
+            ],
+            color="#7C4DFF",
+            function_id="maricraft:fun/giant_jump",
+            bedrock_commands=[
+                "/effect @s levitation 2 50 true",
+                "/effect @s slow_falling 30 0 true",
+            ]
+        ),
+        CommandButton(
+            name="Disco Lights",
+            description="Spawn colorful particle effects",
+            commands=[
+                "/particle dust{color:[1.0,0.0,0.0],scale:2} ~ ~2 ~ 3 3 3 0 50",
+                "/particle dust{color:[0.0,1.0,0.0],scale:2} ~ ~2 ~ 3 3 3 0 50",
+                "/particle dust{color:[0.0,0.0,1.0],scale:2} ~ ~2 ~ 3 3 3 0 50",
+                "/particle dust{color:[1.0,1.0,0.0],scale:2} ~ ~2 ~ 3 3 3 0 50",
+            ],
+            color="#E040FB",
+            function_id="maricraft:fun/disco_lights",
+            bedrock_commands=[
+                "/particle minecraft:balloon_gas_particle ~ ~2 ~",
+                "/particle minecraft:falling_dust ~ ~2 ~",
+            ]
+        ),
+        CommandButton(
+            name="Confetti",
+            description="Celebrate with confetti particles!",
+            commands=[
+                "/particle totem_of_undying ~ ~1 ~ 1 1 1 0.5 100",
+            ],
+            color="#FF80AB",
+            function_id="maricraft:fun/confetti",
+            bedrock_commands=["/particle minecraft:totem_particle ~ ~1 ~"]
+        ),
+        CommandButton(
+            name="Safe Fire",
+            description="Set yourself on fire (with fire resistance!)",
+            commands=[
+                "/effect give @s fire_resistance 60 0 true",
+                "/effect give @s regeneration 60 1 true",
+                "/summon armor_stand ~ ~ ~ {Invisible:1b,Fire:100,NoGravity:1b,Small:1b,Marker:1b}",
+            ],
+            color="#FF6E40",
+            function_id="maricraft:fun/safe_fire",
+            bedrock_commands=[
+                "/effect @s fire_resistance 60 0 true",
+                "/effect @s regeneration 60 1 true",
+            ]
+        ),
+        CommandButton(
+            name="Rainbow Sheep",
+            description="Spawn a magical color-changing sheep!",
+            commands=['/summon sheep ~ ~ ~ {CustomName:\'"jeb_"\'}'],
+            color="#9C27B0",
+            function_id="maricraft:fun/rainbow_sheep",
+            bedrock_commands=['/summon sheep ~ ~ ~ minecraft:entity_born "jeb_"']
+        ),
+        CommandButton(
+            name="Flower Circle",
+            description="Create a circle of flowers around you",
+            commands=[
+                "/setblock ~3 ~ ~ poppy",
+                "/setblock ~-3 ~ ~ dandelion",
+                "/setblock ~ ~ ~3 blue_orchid",
+                "/setblock ~ ~ ~-3 allium",
+                "/setblock ~2 ~ ~2 azure_bluet",
+                "/setblock ~-2 ~ ~2 red_tulip",
+                "/setblock ~2 ~ ~-2 orange_tulip",
+                "/setblock ~-2 ~ ~-2 oxeye_daisy",
+            ],
+            color="#E91E63",
+            function_id="maricraft:fun/flower_circle",
+            bedrock_commands=[
+                "/setblock ~3 ~ ~ red_flower",
+                "/setblock ~-3 ~ ~ yellow_flower",
+                "/setblock ~ ~ ~3 red_flower 1",
+                "/setblock ~ ~ ~-3 red_flower 2",
+                "/setblock ~2 ~ ~2 red_flower 3",
+                "/setblock ~-2 ~ ~2 red_flower 4",
+                "/setblock ~2 ~ ~-2 red_flower 5",
+                "/setblock ~-2 ~ ~-2 red_flower 7",
+            ]
+        ),
+    ]
+)
+
+
+# === CATEGORY 8: ADVANCED ===
+ADVANCED = CommandCategory(
+    name="Advanced",
+    buttons=[
+        CommandButton(
+            name="Clone Area",
+            description="Clone a 10x10x10 area 15 blocks away",
+            commands=["/clone ~-5 ~-1 ~-5 ~5 ~9 ~5 ~10 ~-1 ~-5"],
+            color="#546E7A",
+            function_id="maricraft:advanced/clone_area"
+            # Same for Bedrock
+        ),
+        CommandButton(
+            name="Mob Spawner",
+            description="Get a monster spawner block",
+            commands=["/give @s spawner 1"],
+            color="#455A64",
+            function_id="maricraft:advanced/mob_spawner",
+            bedrock_commands=["/give @s mob_spawner 1"]
+        ),
+        CommandButton(
+            name="Command Block",
+            description="Get a command block (creative mode)",
+            commands=[
+                "/give @s command_block 1",
+                "/give @s chain_command_block 1",
+                "/give @s repeating_command_block 1",
+            ],
+            color="#FF7043",
+            function_id="maricraft:advanced/command_block"
+            # Same for Bedrock
+        ),
+        CommandButton(
+            name="Structure Block",
+            description="Get structure blocks for saving/loading builds",
+            commands=["/give @s structure_block 4"],
+            color="#8D6E63",
+            function_id="maricraft:advanced/structure_block"
+            # Same for Bedrock
+        ),
+        CommandButton(
+            name="Debug Stick",
+            description="Tool to change block states (Java only)",
+            commands=["/give @s debug_stick 1"],
+            color="#7E57C2",
+            function_id="maricraft:advanced/debug_stick",
+            bedrock_commands=[]  # Not available in Bedrock
+        ),
+        CommandButton(
+            name="Barrier Blocks",
+            description="Invisible solid blocks",
+            commands=["/give @s barrier 64"],
+            color="#B0BEC5",
+            function_id="maricraft:advanced/barrier_blocks"
+            # Same for Bedrock
+        ),
+        CommandButton(
+            name="Light Blocks",
+            description="Invisible light sources (various levels)",
+            commands=[
+                "/give @s light 16",
+            ],
+            color="#FFF59D",
+            function_id="maricraft:advanced/light_blocks",
+            bedrock_commands=["/give @s light_block 16"]
+        ),
+        CommandButton(
+            name="XP Boost 1000",
+            description="Add 1000 experience points",
+            commands=["/xp add @s 1000 points"],
+            color="#76FF03",
+            function_id="maricraft:advanced/xp_boost",
+            bedrock_commands=["/xp 1000 @s"]
+        ),
+    ]
+)
+
+
 # All categories for easy iteration
-ALL_CATEGORIES = [BUFFS_EFFECTS, GEAR_ITEMS, TELEPORT_LOCATE, WORLD_CONTROL]
+ALL_CATEGORIES = [
+    BUFFS_EFFECTS, GEAR_ITEMS, TELEPORT_LOCATE, WORLD_CONTROL,
+    BUILDING_CREATION, FRIENDLY_MOBS, FUN_COSMETIC, ADVANCED
+]

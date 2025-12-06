@@ -6,6 +6,7 @@
 |----------|-------------|
 | [README.md](../README.md) | User guide - installation and usage |
 | [CLAUDE.md](../CLAUDE.md) | Developer guide for Claude Code |
+| [TECHNICAL.md](../TECHNICAL.md) | Deep technical implementation details |
 
 ---
 
@@ -37,6 +38,17 @@ Maricraft is a **Windows-only**, kid-friendly Minecraft command helper. Click co
 |----------|-------------|
 | [1.21.1-command-playbook.md](1.21.1-command-playbook.md) | Complete Minecraft Java 1.21.1 command reference |
 | [minecraft-chat-cheatsheet.txt](minecraft-chat-cheatsheet.txt) | Quick syntax reference card |
+
+---
+
+## Examples
+
+| Document | Description |
+|----------|-------------|
+| [example-netherite-gear.md](example-netherite-gear.md) | Vanilla Netherite gear command templates |
+| [example-cataclysm-gear.md](example-cataclysm-gear.md) | Cataclysm mod gear command templates |
+| [ai-prompt-example.md](ai-prompt-example.md) | AI command generation format example |
+| [maricraft-ai-prompt.txt](maricraft-ai-prompt.txt) | Canonical AI system prompt |
 
 ### Key Syntax (1.21.x)
 
@@ -73,16 +85,21 @@ Maricraft is a **Windows-only**, kid-friendly Minecraft command helper. Click co
 ```
 maricraft/
 ├── __main__.py      # Entry point with error handling
-├── ui.py            # Tkinter GUI with button grid
-├── commands.py      # Pre-defined command buttons (with function_id)
+├── ui/              # CustomTkinter GUI package
+│   ├── app.py       # Main App class, Bedrock detection
+│   ├── state.py     # JSON state persistence
+│   ├── theme.py     # Color/font definitions
+│   └── components/  # UI widgets
+├── commands.py      # Pre-defined command buttons (with function_id, bedrock_commands)
 ├── automator.py     # WindowsAutomator (pyautogui + Win32 clipboard)
 ├── constants.py     # Timing and UI constants
 ├── settings.py      # Simple settings dataclass
 ├── logger.py        # File logging
 ├── version.py       # Version constant + GitHub update check
-├── datapack.py      # Datapack installation and detection
+├── datapack.py      # Datapack/behavior pack installation
 └── resources/
-    └── maricraft_datapack/   # Bundled datapack (64 mcfunction files)
+    ├── maricraft_datapack/   # Java datapack (64 mcfunction files)
+    └── maricraft_behavior/   # Bedrock behavior pack
 ```
 
 ### Key Classes
@@ -90,8 +107,8 @@ maricraft/
 | Class | Location | Purpose |
 |-------|----------|---------|
 | `WindowsAutomator` | automator.py | Windows automation via pyautogui |
-| `App` | ui.py | Tkinter GUI with button categories |
-| `CommandButton` | commands.py | Button definition (name, commands, color, function_id) |
+| `App` | ui/app.py | CustomTkinter GUI with button categories |
+| `CommandButton` | commands.py | Button definition (name, commands, bedrock_commands, function_id) |
 | `CommandCategory` | commands.py | Group of related buttons |
 | `Settings` | settings.py | Configuration (chat_key, delay_ms) |
 
@@ -176,6 +193,11 @@ The datapack is copied to: `<world>/datapacks/maricraft_datapack/`
 ---
 
 ## Version History
+
+### v2.0.23 (Current)
+- **Bedrock Edition support**: Auto-detects Java vs Bedrock via process detection
+- **Behavior pack installation**: Bedrock worlds use behavior packs instead of datapacks
+- **`tasklist`-based detection**: No psutil dependency required
 
 ### v2.0.0
 - **Datapack system**: All 64 buttons use `/function` calls for instant execution

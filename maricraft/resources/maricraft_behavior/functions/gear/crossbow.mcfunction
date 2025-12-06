@@ -1,5 +1,2 @@
-# Maricraft: Crossbow
-give @s crossbow 1
-enchant @s quick_charge 3
-enchant @s multishot 1
-enchant @s unbreaking 3
+# Maricraft: Crossbow (using loot table for reliable enchanting)
+loot give @s loot "maricraft/gear/crossbow"

@@ -18,9 +18,10 @@ This provides a complete map of all documentation including command syntax and c
 
 ## Project Overview
 
-Maricraft is a **Windows-only**, kid-friendly Minecraft command helper. It provides a button-based Tkinter GUI where users click pre-programmed buttons to send commands to Minecraft Java Edition.
+Maricraft is a **Windows-only**, kid-friendly Minecraft command helper. It provides a button-based CustomTkinter GUI where users click pre-programmed buttons to send commands to Minecraft.
 
-**Key Features (v2.0.0):**
+**Key Features (v2.0.23):**
+- **Java & Bedrock Support**: Auto-detects edition and uses appropriate commands
 - **Datapack Mode**: Buttons send `/function maricraft:xxx` calls for instant execution
 - **Auto-Update Check**: Checks GitHub for new versions on startup
 - **64 Pre-built Buttons**: Organized in 4 categories
@@ -47,10 +48,14 @@ Or on Windows, just double-click `build.bat`.
 | Module | Purpose |
 |--------|---------|
 | `maricraft/__main__.py` | Entry point with error handling |
-| `maricraft/ui.py` | Tkinter GUI, button grid, settings, install dialog |
-| `maricraft/commands.py` | CommandButton definitions with function_id mapping |
+| `maricraft/ui/` | CustomTkinter GUI package |
+| `maricraft/ui/app.py` | Main App class, button handling, Bedrock detection |
+| `maricraft/ui/state.py` | JSON state persistence |
+| `maricraft/ui/theme.py` | Color/font definitions |
+| `maricraft/ui/components/` | UI widgets (buttons, dialogs, toolbar) |
+| `maricraft/commands.py` | CommandButton definitions with function_id and bedrock_commands |
 | `maricraft/automator.py` | `WindowsAutomator`: pyautogui + Win32 clipboard |
-| `maricraft/datapack.py` | Datapack installation, detection, generation |
+| `maricraft/datapack.py` | Datapack/behavior pack installation |
 | `maricraft/version.py` | Version constant and GitHub update check |
 | `maricraft/constants.py` | Timing, window dimensions, UI constants |
 | `maricraft/settings.py` | Settings dataclass (chat_key, delay_ms) |
@@ -106,6 +111,25 @@ CommandButton(
 After adding a button:
 1. Create matching `.mcfunction` file in `maricraft/resources/maricraft_datapack/data/maricraft/function/`
 2. Rebuild the app if using PyInstaller
+
+### Bedrock Edition Support
+
+Maricraft supports both Java and Bedrock Edition:
+
+- **Detection**: Uses `tasklist` to check for `Minecraft.Windows.exe` process
+- **Commands**: Each `CommandButton` has optional `bedrock_commands` list
+- **Behavior Packs**: Bedrock uses behavior packs instead of datapacks
+- **Path Detection**: Supports GDK (Xbox App), UWP (Microsoft Store) installations
+
+Example button with Bedrock support:
+```python
+CommandButton(
+    name="Full Heal",
+    commands=["/effect give @s instant_health 1 255"],  # Java
+    bedrock_commands=["/effect @s instant_health 1 255"],  # Bedrock (no "give")
+    function_id="maricraft:buffs/full_heal"
+)
+```
 
 ## Minecraft Command Rules
 
@@ -177,6 +201,7 @@ pyperclip>=1.8.2     # Clipboard
 Maricraft/
 ├── CLAUDE.md                              # This file
 ├── README.md                              # User guide
+├── TECHNICAL.md                           # Deep technical documentation
 ├── version.json                           # Version info for update check
 ├── INSTALL.bat                            # Installer script
 ├── RUN_MARICRAFT.bat                      # Launch script
@@ -186,21 +211,28 @@ Maricraft/
 ├── maricraft/
 │   ├── __init__.py                        # Package init, exports __version__
 │   ├── __main__.py                        # Entry point
-│   ├── ui.py                              # Tkinter GUI
+│   ├── ui/                                # CustomTkinter GUI package
+│   │   ├── __init__.py
+│   │   ├── app.py                         # Main App class
+│   │   ├── state.py                       # State persistence
+│   │   ├── theme.py                       # Color/font definitions
+│   │   └── components/                    # UI widgets
 │   ├── commands.py                        # 64 button definitions
 │   ├── automator.py                       # Windows automation
-│   ├── datapack.py                        # Datapack management
+│   ├── datapack.py                        # Datapack/behavior pack management
 │   ├── version.py                         # Version and update check
 │   ├── constants.py                       # UI constants
 │   ├── settings.py                        # Settings dataclass
 │   ├── logger.py                          # File logging
 │   └── resources/
-│       └── maricraft_datapack/            # Bundled datapack (64 mcfunction files)
+│       ├── maricraft_datapack/            # Java datapack (64 mcfunction files)
+│       └── maricraft_behavior/            # Bedrock behavior pack
 └── documentation/
     ├── INDEX.md                           # Documentation index
     ├── 1.21.1-command-playbook.md         # Minecraft command reference
     ├── minecraft-chat-cheatsheet.txt      # Quick syntax reference
-    └── example-netherite-gear.md          # Example gear templates
+    ├── example-netherite-gear.md          # Example vanilla gear
+    └── example-cataclysm-gear.md          # Example modded gear
 ```
 
 ## Installation (for users)

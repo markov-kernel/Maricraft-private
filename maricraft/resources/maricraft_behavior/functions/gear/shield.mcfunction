@@ -1,4 +1,2 @@
-# Maricraft: Shield
-give @s shield 1
-enchant @s unbreaking 3
-enchant @s mending 1
+# Maricraft: Shield (using loot table for reliable enchanting)
+loot give @s loot "maricraft/gear/shield"
