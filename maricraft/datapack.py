@@ -180,15 +180,41 @@ def get_all_bedrock_worlds_paths() -> List[Path]:
     """Get all Bedrock Edition worlds directories on Windows.
 
     Bedrock Edition can be installed in multiple locations:
-    1. Microsoft Store/UWP: %LOCALAPPDATA%/Packages/Microsoft.MinecraftUWP_8wekyb3d8bbwe/LocalState/games/com.mojang/minecraftWorlds
-    2. Xbox Game Pass / Minecraft Launcher: %APPDATA%/Minecraft Bedrock/games/com.mojang/minecraftWorlds
+    1. Xbox App / Launcher GDK: %APPDATA%/Minecraft Bedrock/Users/{UUID}/games/com.mojang/minecraftWorlds
+    2. Microsoft Store/UWP: %LOCALAPPDATA%/Packages/Microsoft.MinecraftUWP_8wekyb3d8bbwe/LocalState/games/com.mojang/minecraftWorlds
 
     Returns:
         List of existing worlds directory paths.
     """
     paths = []
 
-    # 1. Microsoft Store / UWP installation
+    # -------------------------------------------------------------------------
+    # 1. Xbox App / Launcher GDK Path (New Architecture)
+    # Structure: %APPDATA%\Minecraft Bedrock\Users\{UUID}\games\com.mojang\minecraftWorlds
+    # -------------------------------------------------------------------------
+    appdata = os.environ.get("APPDATA")
+    if appdata:
+        base_bedrock = Path(appdata) / "Minecraft Bedrock"
+
+        # Check inside 'Users' for specific account folders (GDK structure)
+        users_dir = base_bedrock / "Users"
+        if users_dir.exists():
+            for user_folder in users_dir.iterdir():
+                if user_folder.is_dir():
+                    # Check for the worlds folder deep inside
+                    user_worlds = user_folder / "games" / "com.mojang" / "minecraftWorlds"
+                    if user_worlds.exists():
+                        paths.append(user_worlds)
+
+        # Fallback for older GDK installs (direct in base)
+        direct_path = base_bedrock / "games" / "com.mojang" / "minecraftWorlds"
+        if direct_path.exists() and direct_path not in paths:
+            paths.append(direct_path)
+
+    # -------------------------------------------------------------------------
+    # 2. Microsoft Store / UWP Path (Legacy Architecture)
+    # Structure: %LOCALAPPDATA%\Packages\Microsoft.MinecraftUWP...\LocalState\...
+    # -------------------------------------------------------------------------
     localappdata = os.environ.get("LOCALAPPDATA")
     if localappdata:
         uwp_path = (
@@ -196,24 +222,8 @@ def get_all_bedrock_worlds_paths() -> List[Path]:
             "Microsoft.MinecraftUWP_8wekyb3d8bbwe" /
             "LocalState" / "games" / "com.mojang" / "minecraftWorlds"
         )
-        if uwp_path.exists():
+        if uwp_path.exists() and uwp_path not in paths:
             paths.append(uwp_path)
-
-    # 2. Xbox Game Pass / Minecraft Launcher installation
-    appdata = os.environ.get("APPDATA")
-    if appdata:
-        gamepass_path = (
-            Path(appdata) / "Minecraft Bedrock" / "games" / "com.mojang" / "minecraftWorlds"
-        )
-        if gamepass_path.exists():
-            paths.append(gamepass_path)
-
-        # Also check without 'games' subfolder (some installations vary)
-        alt_gamepass_path = (
-            Path(appdata) / "Minecraft Bedrock" / "minecraftWorlds"
-        )
-        if alt_gamepass_path.exists() and alt_gamepass_path not in paths:
-            paths.append(alt_gamepass_path)
 
     return paths
 

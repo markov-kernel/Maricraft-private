@@ -253,31 +253,48 @@ class App(ctk.CTk):
     def _detect_bedrock_window(self) -> bool:
         """Check if Minecraft Bedrock Edition is the active window.
 
-        Detection strategy:
-        - Java Edition titles always include version: "Minecraft 1.20.1", "Minecraft* 1.21.1"
-        - Bedrock titles are just "Minecraft" or contain "for Windows"
+        Uses process name detection which is more reliable than window titles.
+        Works with GDK (Xbox App) and UWP (Microsoft Store) versions.
         """
         try:
-            import re
-            import pygetwindow as gw
+            import ctypes
+            import psutil
+            from ctypes import wintypes
 
-            active = gw.getActiveWindow()
-            if active and active.title:
-                title = active.title.strip()
+            # 1. Get Active Window Handle
+            hwnd = ctypes.windll.user32.GetForegroundWindow()
+            if not hwnd:
+                return False
 
-                # Explicit Bedrock indicators
-                if "for Windows" in title:
-                    return True
+            # 2. Get Process ID (PID) from Window
+            pid = wintypes.DWORD()
+            ctypes.windll.user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
 
-                # Java Edition has version number: "Minecraft 1.20.1" or "Minecraft* 1.21.1"
-                # Pattern: "Minecraft" optionally followed by "*" then space and version
-                java_pattern = r"^Minecraft\*?\s+\d+\.\d+"
-                if re.match(java_pattern, title):
-                    return False  # It's Java Edition
+            if pid.value > 0:
+                try:
+                    # 3. Get Process Name via psutil
+                    proc = psutil.Process(pid.value)
+                    proc_name = proc.name().lower()
 
-                # Title is exactly "Minecraft" (no version) = Bedrock
-                if title == "Minecraft":
-                    return True
+                    # Primary Indicator: The actual Bedrock executable
+                    if proc_name == "minecraft.windows.exe":
+                        return True
+
+                    # Secondary Indicator: UWP Frame Host
+                    # Sometimes Bedrock runs wrapped in ApplicationFrameHost.exe
+                    # In this case, we verify the title matches "Minecraft"
+                    if proc_name == "applicationframehost.exe":
+                        # Get Window Title using ctypes
+                        length = ctypes.windll.user32.GetWindowTextLengthW(hwnd)
+                        buff = ctypes.create_unicode_buffer(length + 1)
+                        ctypes.windll.user32.GetWindowTextW(hwnd, buff, length + 1)
+                        title = buff.value
+
+                        if title == "Minecraft":
+                            return True
+
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                    pass
 
         except Exception:
             pass
