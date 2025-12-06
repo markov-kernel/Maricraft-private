@@ -515,6 +515,109 @@ def generate_datapack(output_path: Path, buttons: List["CommandButton"], version
     return datapack_dir
 
 
+def get_bundled_datapack_version() -> str:
+    """Get version from bundled datapack.
+
+    Returns:
+        Version string like "2.0.0", or "0.0.0" if not found.
+    """
+    datapack_path = get_bundled_datapack_path()
+    if datapack_path is None:
+        return "0.0.0"
+
+    version_file = datapack_path / "version.txt"
+    if version_file.exists():
+        return version_file.read_text().strip()
+    return "0.0.0"
+
+
+def _compare_versions(v1: str, v2: str) -> int:
+    """Compare two semantic version strings.
+
+    Args:
+        v1: First version string (e.g., "1.0.0")
+        v2: Second version string (e.g., "2.0.0")
+
+    Returns:
+        -1 if v1 < v2, 0 if equal, 1 if v1 > v2
+    """
+    try:
+        parts1 = [int(x) for x in v1.split('.')]
+        parts2 = [int(x) for x in v2.split('.')]
+    except ValueError:
+        # If parsing fails, treat as needing update
+        return -1
+
+    # Pad shorter version with zeros
+    while len(parts1) < len(parts2):
+        parts1.append(0)
+    while len(parts2) < len(parts1):
+        parts2.append(0)
+
+    for p1, p2 in zip(parts1, parts2):
+        if p1 < p2:
+            return -1
+        if p1 > p2:
+            return 1
+    return 0
+
+
+def needs_datapack_update(world_path: Path) -> bool:
+    """Check if a world needs datapack install/update.
+
+    Args:
+        world_path: Path to the Minecraft world folder.
+
+    Returns:
+        True if datapack should be installed or updated.
+    """
+    installed = get_datapack_version(world_path)
+    bundled = get_bundled_datapack_version()
+
+    if not installed:
+        return True  # Not installed
+
+    return _compare_versions(installed, bundled) < 0
+
+
+def auto_install_all_datapacks() -> dict:
+    """Automatically install/update datapack to all worlds that need it.
+
+    Scans all Minecraft instances (vanilla + CurseForge) and installs
+    or updates the datapack in any world that doesn't have it or has
+    an older version.
+
+    Returns:
+        Dict with keys:
+            - installed: list of world names where datapack was newly installed
+            - updated: list of world names where datapack was updated
+            - failed: list of (world_name, error) tuples
+            - skipped: list of world names already up to date
+    """
+    results = {"installed": [], "updated": [], "failed": [], "skipped": []}
+
+    for instance_name, saves_path, mc_version in get_all_minecraft_instances():
+        for world_name, world_path in list_worlds(saves_path):
+            try:
+                if not needs_datapack_update(world_path):
+                    results["skipped"].append(world_name)
+                    continue
+
+                was_installed = is_datapack_installed(world_path)
+
+                if install_datapack(world_path, mc_version=mc_version):
+                    if was_installed:
+                        results["updated"].append(world_name)
+                    else:
+                        results["installed"].append(world_name)
+                else:
+                    results["failed"].append((world_name, "Installation failed"))
+            except Exception as e:
+                results["failed"].append((world_name, str(e)))
+
+    return results
+
+
 def get_all_buttons() -> List["CommandButton"]:
     """Get all buttons from all categories.
 

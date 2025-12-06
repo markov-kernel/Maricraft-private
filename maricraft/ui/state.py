@@ -45,6 +45,7 @@ class SettingsState:
     chat_key: str = "t"
     delay_ms: int = 100
     use_datapack_mode: bool = True
+    auto_install_datapack: bool = True
 
 
 @dataclass
@@ -139,6 +140,7 @@ class AppState:
                 chat_key=s.get("chat_key", "t"),
                 delay_ms=s.get("delay_ms", 100),
                 use_datapack_mode=s.get("use_datapack_mode", True),
+                auto_install_datapack=s.get("auto_install_datapack", True),
             )
 
         if "favorites" in data:

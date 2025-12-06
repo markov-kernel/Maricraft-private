@@ -19,7 +19,7 @@ class SettingsDialog(ctk.CTkToplevel):
 
         # Window setup
         self.title("Settings")
-        self.geometry("400x350")
+        self.geometry("400x400")
         self.resizable(False, False)
         self.configure(fg_color=COLORS["background"])
 
@@ -27,7 +27,7 @@ class SettingsDialog(ctk.CTkToplevel):
         self.transient(parent)
         self.update_idletasks()
         x = parent.winfo_x() + (parent.winfo_width() - 400) // 2
-        y = parent.winfo_y() + (parent.winfo_height() - 350) // 2
+        y = parent.winfo_y() + (parent.winfo_height() - 400) // 2
         self.geometry(f"+{x}+{y}")
 
         self._build_ui()
@@ -163,6 +163,26 @@ class SettingsDialog(ctk.CTkToplevel):
             progress_color=COLORS["success"],
         ).pack(side="right")
 
+        # Auto-install datapack toggle
+        auto_install_frame = ctk.CTkFrame(main, fg_color="transparent")
+        auto_install_frame.pack(fill="x", pady=SPACING["sm"])
+
+        ctk.CTkLabel(
+            auto_install_frame,
+            text="Auto-install datapack:",
+            font=FONTS["body"],
+            text_color=COLORS["text"],
+        ).pack(side="left")
+
+        self.auto_install_var = ctk.BooleanVar(value=self.app_state.settings.auto_install_datapack)
+        ctk.CTkSwitch(
+            auto_install_frame,
+            text="",
+            variable=self.auto_install_var,
+            fg_color=COLORS["surface_light"],
+            progress_color=COLORS["success"],
+        ).pack(side="right")
+
         # Buttons
         btn_frame = ctk.CTkFrame(main, fg_color="transparent")
         btn_frame.pack(fill="x", pady=(SPACING["xl"], 0))
@@ -211,6 +231,7 @@ class SettingsDialog(ctk.CTkToplevel):
         self.app_state.settings.chat_key = self.chat_key_var.get()
         self.app_state.settings.delay_ms = delay
         self.app_state.settings.use_datapack_mode = self.datapack_var.get()
+        self.app_state.settings.auto_install_datapack = self.auto_install_var.get()
         self.app_state.appearance.mode = self.appearance_var.get()
 
         # Save and close

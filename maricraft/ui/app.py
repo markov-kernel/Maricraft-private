@@ -74,6 +74,10 @@ class App(ctk.CTk):
         # Check for updates
         self.after(1000, self._check_for_updates_async)
 
+        # Auto-install datapacks
+        if self.app_state.settings.auto_install_datapack:
+            self.after(500, self._auto_install_datapacks)
+
     def _setup_window_geometry(self) -> None:
         """Set up window size and position from saved state."""
         w = self.app_state.window
@@ -342,6 +346,27 @@ class App(ctk.CTk):
         """Handle window close."""
         self.app_state_manager.save()
         self.destroy()
+
+    def _auto_install_datapacks(self) -> None:
+        """Auto-install/update datapacks in background."""
+        def worker():
+            from ..datapack import auto_install_all_datapacks
+            results = auto_install_all_datapacks()
+
+            # Build status message
+            installed = len(results["installed"])
+            updated = len(results["updated"])
+
+            if installed or updated:
+                parts = []
+                if installed:
+                    parts.append(f"installed in {installed} world(s)")
+                if updated:
+                    parts.append(f"updated in {updated} world(s)")
+                message = f"Datapack {' and '.join(parts)}"
+                self.after(0, lambda: self._set_status(message))
+
+        threading.Thread(target=worker, daemon=True).start()
 
     def _check_for_updates_async(self) -> None:
         """Check for updates and download silently in background."""
