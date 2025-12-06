@@ -23,6 +23,7 @@ python -c "import pyautogui; print('  pyautogui:', pyautogui.__version__)"
 python -c "import pyperclip; print('  pyperclip: OK')"
 python -c "import pygetwindow; print('  pygetwindow: OK')"
 python -c "import customtkinter; print('  customtkinter:', customtkinter.__version__)"
+python -c "import psutil; print('  psutil:', psutil.__version__)"
 echo.
 
 echo [3] Checking maricraft modules...

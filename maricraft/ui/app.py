@@ -250,12 +250,11 @@ class App(ctk.CTk):
             return True
         return query in button.name.lower() or query in button.description.lower()
 
-    def _detect_bedrock_window(self) -> bool:
+    def _detect_bedrock_running(self) -> bool:
         """Check if Minecraft Bedrock Edition is running.
 
-        Checks for running minecraft.windows.exe process (not foreground window).
-        This is necessary because at button-click time, Maricraft is the foreground
-        window, not Minecraft.
+        Checks for running Bedrock processes. Bedrock uses:
+        - Minecraft.Windows.exe (GDK/Xbox App version)
         """
         try:
             import psutil
@@ -263,13 +262,57 @@ class App(ctk.CTk):
             for proc in psutil.process_iter(['name']):
                 try:
                     proc_name = proc.info['name']
-                    if proc_name and proc_name.lower() == "minecraft.windows.exe":
-                        return True
+                    if proc_name:
+                        proc_lower = proc_name.lower()
+                        # Check for exact Bedrock exe name
+                        if proc_lower == "minecraft.windows.exe":
+                            print(f"DEBUG: Found Bedrock process: {proc_name}")
+                            return True
+                        # Also log any minecraft-related processes for debugging
+                        if "minecraft" in proc_lower:
+                            print(f"DEBUG: Found other Minecraft process: {proc_name}")
                 except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                     pass
+        except ImportError:
+            print("DEBUG: psutil not installed!")
+        except Exception as e:
+            print(f"DEBUG: Exception in _detect_bedrock_running: {e}")
+        print("DEBUG: Bedrock NOT detected")
+        return False
 
+    def _detect_java_running(self) -> bool:
+        """Check if Minecraft Java Edition is running."""
+        try:
+            import psutil
+
+            for proc in psutil.process_iter(['name']):
+                try:
+                    proc_name = proc.info['name']
+                    if proc_name:
+                        # Java Edition runs as javaw.exe
+                        if proc_name.lower() == "javaw.exe":
+                            return True
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                    pass
         except Exception:
             pass
+        return False
+
+    def _is_bedrock_mode(self) -> bool:
+        """Determine if we should use Bedrock commands.
+
+        Priority:
+        1. If Bedrock is running -> Bedrock mode
+        2. If only Java is running -> Java mode
+        3. Default -> Java mode (legacy)
+        """
+        bedrock_running = self._detect_bedrock_running()
+        java_running = self._detect_java_running()
+
+        # If Bedrock is running (regardless of Java), use Bedrock mode
+        if bedrock_running:
+            return True
+
         return False
 
     def _on_button_click(self, button: CommandButton) -> None:
@@ -278,15 +321,18 @@ class App(ctk.CTk):
             self._show_message("Please wait for the current command to finish.", "info")
             return
 
-        # Detect which edition is active
-        is_bedrock = self._detect_bedrock_window()
+        # Detect which edition is running
+        is_bedrock = self._is_bedrock_mode()
+        print(f"DEBUG: _on_button_click - is_bedrock={is_bedrock}, button={button.name}")
 
         if is_bedrock:
             # Bedrock Edition: use bedrock_commands if available, otherwise fall back
             commands = button.bedrock_commands if button.bedrock_commands else button.commands
+            print(f"DEBUG: Using Bedrock path, commands={commands}")
             self._execute_commands(commands, button.name)
         else:
             # Java Edition: use datapack function if enabled, otherwise legacy mode
+            print(f"DEBUG: Using Java path, datapack_mode={self.app_state.settings.use_datapack_mode}, function_id={button.function_id}")
             if self.app_state.settings.use_datapack_mode and button.function_id:
                 if not self.app_state.datapack_warning_shown and not check_any_world_has_datapack():
                     self.app_state.datapack_warning_shown = True

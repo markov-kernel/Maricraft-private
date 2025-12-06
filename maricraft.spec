@@ -27,6 +27,7 @@ a = Analysis(
         'PIL._tkinter_finder',
         'customtkinter',
         'darkdetect',  # CTk dependency
+        'psutil',  # Process detection for Bedrock Edition
     ],
     hookspath=[],
     hooksconfig={},
