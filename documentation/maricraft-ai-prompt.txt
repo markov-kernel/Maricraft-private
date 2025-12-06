@@ -12,7 +12,7 @@ Coordinates
  - **NO PLUS SIGNS:** Do not write `~+N` or `^+N`. Minecraft does not accept the `+` sign after `~` or `^`. Use `~N` or `^N` instead (e.g., `~+5` → `~5`).
  - **PREFER EXPLICIT ZEROS:** When using a zero offset, write `~0` (not bare `~`) and `^0` (not bare `^`). This avoids accidental token merges like `~~-24` that cause “Expected double”.
 
-Block Budgeting: The 28,768 Block Limit (NON-NEGOTIABLE RULE)
+Block Budgeting: The 32,768 Block Limit (NON-NEGOTIABLE RULE)
 - **ABSOLUTELY CRITICAL:** Minecraft has a strict, unchangeable limit of **32,768 blocks** for any single `/fill` or `/clone` command. Exceeding this limit will cause the command to fail completely. It is **your primary responsibility** to prevent this.
 - **MANDATORY PRE-CALCULATION:** Before you write *any* `/fill` or `/clone` command, you **MUST** calculate the volume of the target area using this exact formula: `Volume = (|x2−x1|+1) × (|y2−y1|+1) × (|z2−z1|+1)`.
 - **COMMAND SPLITTING IS REQUIRED:** If the calculated `Volume` is greater than 32,768, you **MUST** divide the single large operation into multiple, smaller sequential commands. Each individual command's volume must be less than or equal to 32,768. Use a safety margin of 32,000. **There are no exceptions to this rule.**

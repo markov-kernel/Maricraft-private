@@ -1,11 +1,9 @@
-"""Constants for Maricraft automation."""
+"""Constants for Maricraft Windows automation."""
 
 from __future__ import annotations
 
 from enum import Enum
 
-
-# === Enums for Type Safety ===
 
 class ChatKey(Enum):
     """Chat key options for opening Minecraft chat."""
@@ -21,73 +19,29 @@ class ChatKey(Enum):
         return cls.T
 
 
-class AIMode(Enum):
-    """AI assistant mode."""
-    CREATE = "create"
-    DEBUG = "debug"
-
-    @classmethod
-    def from_str(cls, value: str) -> "AIMode":
-        """Convert string to AIMode, defaulting to CREATE."""
-        for member in cls:
-            if member.value == value:
-                return member
-        return cls.CREATE
-
-
-# macOS Key Codes (virtual key codes for AppleScript/Quartz)
-KEY_ENTER = 36
-KEY_ESCAPE = 53
-KEY_DELETE = 51
-KEY_SPACE = 49
-KEY_N = 45
-KEY_V = 9
-
 # Timing Constants (milliseconds)
-DELAY_ULTRA_MS = 5
-DELAY_TURBO_MS = 40
-DELAY_STANDARD_MS = 120
-DELAY_SETTLE_MS = 100
-DELAY_PASTE_WAIT_MS = 160
-DELAY_VERIFY_MS = 80
-VERIFY_TIMEOUT_MS = 5000  # Maximum time for input verification
+DELAY_FAST_MS = 50
+DELAY_STANDARD_MS = 100
+DELAY_BETWEEN_COMMANDS_MS = 150
 
 # Window Dimensions
-WINDOW_DEFAULT_WIDTH = 900
-WINDOW_DEFAULT_HEIGHT = 680
-WINDOW_MIN_WIDTH = 800
-WINDOW_MIN_HEIGHT = 520
+WINDOW_DEFAULT_WIDTH = 850
+WINDOW_DEFAULT_HEIGHT = 700
+WINDOW_MIN_WIDTH = 700
+WINDOW_MIN_HEIGHT = 500
 
-# Process Names for Minecraft Detection
-MINECRAFT_PROCESS_NAMES = ("java", "javaw")
-
-# Text Injection Chunk Size
-QUARTZ_INJECT_CHUNK_SIZE = 256
+# Minecraft Window Title Patterns (for pygetwindow)
+MINECRAFT_WINDOW_TITLES = ["Minecraft"]
 
 # Log File
-DEFAULT_LOG_PATH = "log.txt"
+DEFAULT_LOG_PATH = "maricraft_log.txt"
 
-# Keyboard Layout Candidates (for ASCII input forcing)
-KEYBOARD_LAYOUT_CANDIDATES = ("ABC", "U.S.", "ABC - QWERTZ", "ABC QWERTZ")
+# UI Settings
+UI_DELAY_MIN_MS = 50
+UI_DELAY_MAX_MS = 500
+UI_DELAY_DEFAULT_MS = 100
 
-# Sentinel Pattern Prefix (for clipboard verification)
-SENTINEL_PREFIX = "__MARICRAFT_SENTINEL__"
-
-# Teleport Command
-TELEPORT_BACK_COMMAND = "/tp @s ^ ^ ^-75"
-TELEPORT_BACK_DISTANCE = 75
-
-# AI Model Options
-AI_MODEL_OPTIONS = (
-    "openrouter/openai/gpt-4o-mini",
-    "openrouter/openai/gpt-4o",
-    "openrouter/meta-llama/llama-3.1-70b-instruct",
-    "openrouter/mistralai/mistral-large",
-)
-AI_DEFAULT_MODEL = "openrouter/openai/gpt-4o-mini"
-
-# UI Delay Limits
-UI_DELAY_MIN_MS = 30
-UI_DELAY_MAX_MS = 1000
-UI_DELAY_INCREMENT = 5
-
+# Button Grid Layout
+BUTTONS_PER_ROW = 4
+BUTTON_WIDTH = 14
+BUTTON_HEIGHT = 2

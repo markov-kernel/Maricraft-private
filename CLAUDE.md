@@ -6,36 +6,34 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## IMPORTANT: Read Documentation First
 
-**Before making any changes or generating Minecraft commands, you MUST read:**
+**Before making any changes or generating Minecraft commands, read:**
 
 ```
 documentation/INDEX.md
 ```
 
-The INDEX.md provides a complete map of all documentation including:
-- Minecraft 1.21.1 command syntax and critical limits
-- AI prompt rules and validation checklists
-- Example gear templates
-- Architecture overview
-
-**Do not proceed without consulting the INDEX.md first.**
+This provides a complete map of all documentation including command syntax and critical limits.
 
 ---
 
 ## Project Overview
 
-Maricraft is a macOS-only Minecraft chat macro runner. It provides a Tkinter GUI to paste a list of chat commands and send them to a running Minecraft Java client via AppleScript/Quartz automation. It also includes an AI assistant feature that uses OpenRouter + LiteLLM to generate or debug Minecraft commands.
+Maricraft is a **Windows-only**, kid-friendly Minecraft command helper. It provides a button-based Tkinter GUI where users click pre-programmed buttons to send commands to Minecraft Java Edition. The app uses pyautogui for Windows automation.
 
 ## Quick Commands
 
 ```bash
-# Run the application
-uv run python -m maricraft
+# Run the application (requires Python)
+pip install pyautogui pygetwindow pyperclip
+python -m maricraft
 
-# Debug tools
-uv run python -m maricraft.debug_tools paste-test --text "/tp @s ~ ~ ~"
-uv run python -m maricraft.debug_tools type-tilde-test --text "/fill ~-1 ~ ~-1 ~1 ~1 ~1 air"
+# Build standalone .exe (no Python required to run)
+pip install pyinstaller
+pyinstaller maricraft.spec --clean
+# Output: dist/MariCraft.exe
 ```
+
+Or on Windows, just double-click `build.bat`.
 
 ## Architecture
 
@@ -43,98 +41,108 @@ uv run python -m maricraft.debug_tools type-tilde-test --text "/fill ~-1 ~ ~-1 ~
 
 | Module | Purpose |
 |--------|---------|
-| `maricraft/ui.py` | Main entry point: `App` (Tkinter GUI), `MacAutomator`, `Settings`, `Logger` |
-| `maricraft/ai_chat.py` | AI assistant using OpenAI Agents SDK + LiteLLM via OpenRouter |
-| `maricraft/hotkeys.py` | Global hotkey watcher (Space+Escape) using Quartz event taps |
-| `maricraft/debug_tools.py` | CLI tools for testing paste/type mechanisms |
-| `maricraft/automator.py` | Automation utilities |
-| `maricraft/constants.py` | Shared constants |
-| `maricraft/logger.py` | Logging utilities |
-| `maricraft/settings.py` | Settings management |
+| `maricraft/ui.py` | Main entry point: button-based Tkinter GUI |
+| `maricraft/commands.py` | Pre-defined command buttons organized by category |
+| `maricraft/automator.py` | `WindowsAutomator`: pyautogui automation for Minecraft |
+| `maricraft/constants.py` | Timing, window dimensions, UI constants |
+| `maricraft/settings.py` | Simple settings dataclass (chat_key, delay_ms) |
+| `maricraft/logger.py` | Timestamped file logging |
 
-### Key Components
+### Button Categories
 
-| Component | Location | Description |
-|-----------|----------|-------------|
-| `MacAutomator` | ui.py:45-554 | AppleScript/Quartz automation for Minecraft window control |
-| `App` | ui.py:557-954 | Tkinter GUI with Commands and AI tabs |
-| `AIChatController` | ai_chat.py:123-304 | AI interactions via OpenRouter |
-| `Settings` | ui.py:30-43 | Run configuration dataclass |
-| `Logger` | ui.py:964-984 | Timestamped file logger |
+Defined in `commands.py`:
 
-### Settings Fields
+| Category | Examples |
+|----------|----------|
+| **Buffs & Effects** | Full Heal, Regen, Night Vision, GOD MODE |
+| **Gear & Items** | Diamond/Netherite Armor, Super Sword, Elytra |
+| **Teleport & Locate** | Find Village, Find Stronghold, TP Forward 100 |
+| **World Control** | Set Day, Clear Weather, Peaceful Mode, Keep Inventory |
 
-| Field | Description |
-|-------|-------------|
-| `chat_key` | Chat open key: `t` or `/` |
-| `delay_ms` | Delay between commands |
-| `press_escape_first` | Press Escape before starting |
-| `type_instead_of_paste` | Type characters instead of clipboard paste |
-| `use_quartz_injection` | Use Quartz for faster input |
-| `turbo_mode` | ~40ms delays (default: False) |
-| `ultra_mode` | ~5ms aggressive delays (default: True) |
+### Adding New Buttons
 
-## Critical Rules (Quick Reference)
+Edit `maricraft/commands.py`:
 
-> **Full details in `documentation/INDEX.md`**
+```python
+CommandButton(
+    name="Button Label",      # Shown on button
+    description="Tooltip",    # Shown on hover
+    commands=["/command1", "/command2"],  # Commands to execute
+    color="#FF6B6B"           # Button background color (hex)
+)
+```
 
-### Minecraft 1.21.1 Limits
+## Minecraft Command Rules
+
+### Critical Limits
 
 | Limit | Value |
 |-------|-------|
 | Chat command length | 256 characters max |
 | Fill/clone volume | 32,768 blocks max per command |
-| Attribute ID format | `minecraft:generic.*` (e.g., `minecraft:generic.attack_damage`) |
 
-### Automatic Command Preprocessing
+### Enchantment Syntax (1.21.x)
 
-`MacAutomator._normalize_carets()` automatically fixes commands:
+**IMPORTANT**: In Minecraft 1.21.x, enchantments require the `levels` sub-key:
+
+```
+# CORRECT (1.21.x)
+/give @s netherite_sword[enchantments={levels:{sharpness:5,fire_aspect:2}}] 1
+
+# WRONG - causes "Expected whitespace" error
+/give @s netherite_sword[enchantments={sharpness:5,fire_aspect:2}] 1
+```
+
+### Coordinate Normalization
+
+`WindowsAutomator._normalize_carets()` automatically fixes:
 
 | Input | Output | Reason |
 |-------|--------|--------|
 | `^` | `^0` | Bare caret invalid |
 | `~` | `~0` | Prevents edge case errors |
 | `~+5` | `~5` | Minecraft rejects `+` after `~` or `^` |
-| `^+2` | `^2` | Same as above |
 
 ### Coordinate Rules
 
 - **Never mix** `~` and `^` in the same XYZ triplet
-- Look-direction placement: `execute positioned ^0 ^0 ^D run ...`
+- Look-direction placement: `execute at @s run tp @s ^0 ^0 ^D`
 - Always use explicit zeros: `^0 ^0 ^10` not `^ ^ ^10`
 
-## Environment Variables
+## Windows Requirements
 
-Create `.env` in project root:
+1. **Minecraft Java Edition** must be running
+2. The app will automatically focus the Minecraft window
+3. For best results, run Minecraft in **windowed mode** (not fullscreen)
 
-```bash
-OPENROUTER_API_KEY=...        # Required
-OR_SITE_URL=...               # Optional: attribution header
-OR_APP_NAME=...               # Optional: attribution header
+## Dependencies
+
+```toml
+pyautogui>=0.9.54    # Keyboard automation
+pygetwindow>=0.0.9   # Window focus
+pyperclip>=1.8.2     # Clipboard
 ```
 
-## macOS Requirements
-
-1. **Accessibility permissions** - System Settings > Privacy & Security > Accessibility
-2. Grant access to Terminal/IDE and `osascript`
-3. Minecraft must be running as `java` or `javaw` process
-
-## Known Issues
-
-- `HotkeyWatcher` is used in `ui.py` but not imported. The global hotkey (Space+Escape) will silently fail. Fix: add `from .hotkeys import HotkeyWatcher` to `ui.py` imports.
-
-## Documentation Map
+## Documentation
 
 ```
 Maricraft/
-├── CLAUDE.md                              # This file (dev guidance)
-├── README.md                              # User quick start
+├── CLAUDE.md                              # This file
+├── README.md                              # User guide
+├── INSTALL.bat                            # Installer script
+├── RUN_MARICRAFT.bat                      # Launch script
+├── DEBUG_MARICRAFT.bat                    # Debug script
+├── build.bat                              # PyInstaller build script
+├── maricraft.spec                         # PyInstaller config
 └── documentation/
-    ├── INDEX.md                           # START HERE - full documentation index
-    ├── 1.21.1-command-playbook.md         # Complete command reference
-    ├── maricraft-ai-prompt.txt            # AI system prompt
-    ├── ai-prompt-example.md               # Extended prompt example
+    ├── INDEX.md                           # START HERE - documentation index
+    ├── 1.21.1-command-playbook.md         # Minecraft command reference
     ├── minecraft-chat-cheatsheet.txt      # Quick syntax reference
-    ├── example-netherite-gear.md          # Vanilla gear example
-    └── example-cataclysm-gear.md          # Modded gear example
+    └── example-netherite-gear.md          # Example gear templates
 ```
+
+## Installation (for users)
+
+1. Unzip the Maricraft folder
+2. Double-click `INSTALL.bat` (installs Python packages)
+3. Double-click `RUN_MARICRAFT.bat`

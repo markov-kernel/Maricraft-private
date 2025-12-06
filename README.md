@@ -1,47 +1,94 @@
-Maricraft — Minecraft Chat Macro Runner (macOS)
+# Maricraft - Minecraft Command Helper for Windows
 
-Quick UI to paste a list of chat commands and send them to Minecraft with one click. It brings the game to front, presses Escape to resume (optional), opens chat, pastes each line, presses Enter, and repeats.
+A kid-friendly Windows app with colorful buttons that send commands to Minecraft. No typing required!
 
-Run with uv
+## Features
 
-- Prereqs: macOS, Minecraft Java running and focused at least once, Python available (system Python is fine), and `uv` installed.
+- **Big Colorful Buttons** - Just click to activate
+- **4 Categories:**
+  - **Buffs & Effects** - Healing, speed, night vision, GOD MODE
+  - **Gear & Items** - Armor, weapons, elytra, golden apples
+  - **Teleport & Locate** - Find structures, quick teleport
+  - **World Control** - Time, weather, difficulty, gamemode
+- **Works with Minecraft Java Edition** (1.21.x)
 
-Commands:
+---
 
-- Start the UI: `uv run python -m maricraft`
+## Installation (Super Easy!)
 
-Defaults and speed
+### Step 1: Download
+Download or copy the Maricraft folder to the Windows computer.
 
-- Default mode is tuned for speed: typing (not paste), turbo timings, ASCII layout safe handling enabled. Delay defaults to 40 ms. You can further tweak Delay if needed.
-- Optional: toggle "Quartz inject (fast)". On some setups this is ignored by the game; when enabled the app verifies injection and falls back to typing if it didn’t land.
+### Step 2: Install
+**Double-click `INSTALL.bat`**
 
-AI Assistant (Create & Debug)
+This will:
+- Install Python automatically (if needed)
+- Install the required packages
+- Create a desktop shortcut
 
-- Create new commands or debug failing ones from the AI tab.
-- Add `.env` with `OPENROUTER_API_KEY=...` (OpenRouter key). Optional: `OR_SITE_URL`, `OR_APP_NAME` for attribution.
-- Choose a model (e.g., `openrouter/openai/gpt-4o-mini`) and chat. The default model in the UI may need to be changed to a valid option. The app requests structured JSON via OpenRouter `response_format` and requires supported providers.
-- Debug mode can attach the tail of `log.txt` for context. Use “Apply to Commands” or “Apply & Run”.
+### Step 3: Play!
+**Double-click the "Maricraft" shortcut on your desktop**
 
-First-run permissions
+---
 
-- macOS will prompt for Accessibility control (to allow keystrokes). If it doesn’t, go to System Settings → Privacy & Security → Accessibility and enable Terminal (or the app you use to run `uv`) and `osascript` if shown.
+## How to Use
 
-Usage tips
+1. Open Minecraft and start a world with **cheats enabled**
+2. Run Maricraft (desktop shortcut or `RUN_MARICRAFT.bat`)
+3. Click any button!
 
-- Chat key: default is `t`. Switch to `/` if you prefer opening chat with a leading slash.
-- Delays: increase if commands are missed (e.g., to 250–300 ms).
-- Lines starting with `#` and blank lines are ignored.
-- Clipboard is preserved and restored when done.
-- Logs: writes to `log.txt` in the working directory and overwrites on each Run.
-- Back 75: Click this button to quickly teleport 75 blocks backward (useful after building ahead).
+The app will:
+- Switch to your Minecraft window
+- Open the chat
+- Type the command
+- Press Enter
 
-Emergency stop
+Done!
 
-- Press Space+Escape (either order, within 500ms) to immediately stop a running macro. This works globally even when Minecraft is focused.
-- Requires Accessibility permissions for the Quartz event tap.
+---
 
-Notes
+## Tips
 
-- Target process names tried: `Minecraft`, `java`, `javaw`. If the game window isn’t focused reliably, click the game once before running.
-- Only use in contexts where macros are allowed.
-- For fastest typing, enable "Quartz inject (fast)" in Options. This uses macOS Quartz to insert text directly (requires Accessibility permissions). If unavailable, the checkbox will indicate it.
+- Run Minecraft in **windowed mode** (not fullscreen) for best results
+- If commands are missed, click **Settings** and increase the delay
+- Make sure cheats are enabled in your world
+
+---
+
+## Button Examples
+
+| Button | What it does |
+|--------|-------------|
+| **GOD MODE** | Regeneration + resistance + strength + speed + fire resistance + night vision! |
+| **Netherite Armor** | Full set of netherite armor |
+| **Super Sword** | Netherite sword with Sharpness V, Fire Aspect II, Looting III |
+| **Find Village** | Shows coordinates of nearest village |
+| **TP Forward 100** | Teleports you 100 blocks in the direction you're looking |
+| **Set Day** | Changes time to daytime |
+| **Keep Inventory** | Your items won't drop when you die |
+
+---
+
+## Troubleshooting
+
+**"Python is not recognized"**
+- Run `INSTALL.bat` again
+- Or restart your computer and try again
+
+**"Commands not working"**
+- Make sure cheats are enabled in your Minecraft world
+- Try increasing the delay in Settings (click Settings button)
+- Run Minecraft in windowed mode, not fullscreen
+
+**"Can't find Minecraft window"**
+- Make sure Minecraft is running
+- Click on the Minecraft window once, then try again
+
+---
+
+## Requirements
+
+- Windows 10 or 11
+- Minecraft Java Edition
+- World with cheats enabled
