@@ -251,48 +251,20 @@ class App(ctk.CTk):
         return query in button.name.lower() or query in button.description.lower()
 
     def _detect_bedrock_window(self) -> bool:
-        """Check if Minecraft Bedrock Edition is the active window.
+        """Check if Minecraft Bedrock Edition is running.
 
-        Uses process name detection which is more reliable than window titles.
-        Works with GDK (Xbox App) and UWP (Microsoft Store) versions.
+        Checks for running minecraft.windows.exe process (not foreground window).
+        This is necessary because at button-click time, Maricraft is the foreground
+        window, not Minecraft.
         """
         try:
-            import ctypes
             import psutil
-            from ctypes import wintypes
 
-            # 1. Get Active Window Handle
-            hwnd = ctypes.windll.user32.GetForegroundWindow()
-            if not hwnd:
-                return False
-
-            # 2. Get Process ID (PID) from Window
-            pid = wintypes.DWORD()
-            ctypes.windll.user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
-
-            if pid.value > 0:
+            for proc in psutil.process_iter(['name']):
                 try:
-                    # 3. Get Process Name via psutil
-                    proc = psutil.Process(pid.value)
-                    proc_name = proc.name().lower()
-
-                    # Primary Indicator: The actual Bedrock executable
-                    if proc_name == "minecraft.windows.exe":
+                    proc_name = proc.info['name']
+                    if proc_name and proc_name.lower() == "minecraft.windows.exe":
                         return True
-
-                    # Secondary Indicator: UWP Frame Host
-                    # Sometimes Bedrock runs wrapped in ApplicationFrameHost.exe
-                    # In this case, we verify the title matches "Minecraft"
-                    if proc_name == "applicationframehost.exe":
-                        # Get Window Title using ctypes
-                        length = ctypes.windll.user32.GetWindowTextLengthW(hwnd)
-                        buff = ctypes.create_unicode_buffer(length + 1)
-                        ctypes.windll.user32.GetWindowTextW(hwnd, buff, length + 1)
-                        title = buff.value
-
-                        if title == "Minecraft":
-                            return True
-
                 except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                     pass
 
