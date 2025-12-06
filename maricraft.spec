@@ -15,6 +15,7 @@ a = Analysis(
     binaries=[],
     datas=[
         ('maricraft/resources/maricraft_datapack', 'resources/maricraft_datapack'),
+        ('maricraft/resources/maricraft_behavior', 'resources/maricraft_behavior'),
         (ctk_path, 'customtkinter'),  # Bundle CustomTkinter assets
     ],
     hiddenimports=[
