@@ -10,8 +10,11 @@ import customtkinter as ctk
 from ...datapack import (
     get_all_minecraft_instances,
     list_worlds,
+    list_bedrock_worlds,
     is_datapack_installed,
+    is_behavior_pack_installed,
     install_datapack,
+    install_behavior_pack,
 )
 from ..theme import COLORS, FONTS, RADIUS, SPACING
 
@@ -241,8 +244,16 @@ class InstallDatapackDialog(ctk.CTkToplevel):
         if not self.current_saves_path:
             return
 
+        # Check if this is Bedrock Edition
+        is_bedrock = self.current_version == "bedrock"
+
         # Update labels
-        if self.current_version:
+        if is_bedrock:
+            self.version_label.configure(
+                text="Detected: Minecraft Bedrock Edition",
+                text_color=COLORS["success"],
+            )
+        elif self.current_version:
             self.version_label.configure(
                 text=f"Detected: Minecraft {self.current_version}",
                 text_color=COLORS["success"],
@@ -255,8 +266,11 @@ class InstallDatapackDialog(ctk.CTkToplevel):
 
         self.path_label.configure(text=f"Path: {self.current_saves_path}")
 
-        # Get worlds
-        worlds = list_worlds(self.current_saves_path)
+        # Get worlds - use appropriate function for edition
+        if is_bedrock:
+            worlds = list_bedrock_worlds()
+        else:
+            worlds = list_worlds(self.current_saves_path)
 
         if not worlds:
             ctk.CTkLabel(
@@ -270,7 +284,11 @@ class InstallDatapackDialog(ctk.CTkToplevel):
         # Create checkboxes
         for world_name, world_path in worlds:
             var = ctk.BooleanVar(value=True)
-            installed = is_datapack_installed(world_path)
+            # Check if pack is installed - use appropriate function
+            if is_bedrock:
+                installed = is_behavior_pack_installed(world_path)
+            else:
+                installed = is_datapack_installed(world_path)
 
             row = ctk.CTkFrame(self.world_frame, fg_color="transparent")
             row.pack(fill="x", pady=SPACING["xs"])
@@ -307,7 +325,7 @@ class InstallDatapackDialog(ctk.CTkToplevel):
             var.set(False)
 
     def _install(self) -> None:
-        """Install datapack to selected worlds."""
+        """Install datapack/behavior pack to selected worlds."""
         from tkinter import messagebox
 
         selected = [(name, path) for var, name, path in self.world_vars if var.get()]
@@ -316,26 +334,45 @@ class InstallDatapackDialog(ctk.CTkToplevel):
             messagebox.showinfo("No Selection", "Please select at least one world.")
             return
 
+        is_bedrock = self.current_version == "bedrock"
         success = 0
         failed = 0
+
         for name, path in selected:
-            if install_datapack(path, mc_version=self.current_version):
-                success += 1
+            if is_bedrock:
+                # Bedrock Edition - install behavior pack
+                if install_behavior_pack(path):
+                    success += 1
+                else:
+                    failed += 1
             else:
-                failed += 1
+                # Java Edition - install datapack
+                if install_datapack(path, mc_version=self.current_version):
+                    success += 1
+                else:
+                    failed += 1
 
         self.destroy()
 
-        version_info = f" (for Minecraft {self.current_version})" if self.current_version else ""
+        # Customize message for edition
+        if is_bedrock:
+            pack_type = "Behavior pack"
+            reload_msg = "restart the world"
+            version_info = " (Bedrock Edition)"
+        else:
+            pack_type = "Datapack"
+            reload_msg = "run /reload or restart the world"
+            version_info = f" (for Minecraft {self.current_version})" if self.current_version else ""
+
         if failed == 0:
             messagebox.showinfo(
                 "Installation Complete",
-                f"Datapack installed to {success} world(s){version_info}!\n\n"
-                "In Minecraft, run /reload or restart the world to activate."
+                f"{pack_type} installed to {success} world(s){version_info}!\n\n"
+                f"In Minecraft, {reload_msg} to activate."
             )
         else:
             messagebox.showwarning(
                 "Partial Installation",
                 f"Installed to {success} world(s), {failed} failed{version_info}.\n\n"
-                "In Minecraft, run /reload or restart the world to activate."
+                f"In Minecraft, {reload_msg} to activate."
             )
