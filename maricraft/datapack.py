@@ -498,7 +498,11 @@ def generate_datapack(output_path: Path, buttons: List["CommandButton"], version
             continue
 
         # Parse function_id: "maricraft:buffs/god_mode" -> "buffs/god_mode.mcfunction"
-        func_path = button.function_id.replace("maricraft:", "") + ".mcfunction"
+        # Handle any namespace (strip everything before and including ':')
+        func_id = button.function_id
+        if ":" in func_id:
+            func_id = func_id.split(":", 1)[1]  # Take part after ':'
+        func_path = func_id + ".mcfunction"
         file_path = data_dir / func_path
 
         # Ensure parent directory exists

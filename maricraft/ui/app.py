@@ -533,13 +533,61 @@ class App(ctk.CTk):
             self.after(0, lambda: status_label.configure(text=stage))
 
         def do_install() -> None:
-            success, error = perform_update(
-                self.update_available,
-                progress_callback=progress_callback
+            # Import here to avoid circular import
+            from ..updater import get_download_path, get_current_exe_path, get_backup_path
+            from ..updater import verify_hash, create_updater_script
+            import subprocess
+            import sys
+
+            update_info = self.update_available
+            current_exe = get_current_exe_path()
+
+            if current_exe is None:
+                self.after(0, lambda: self._show_install_error(
+                    progress_window, "Auto-update only works when running as MariCraft.exe"))
+                return
+
+            download_path = get_download_path()
+            if not download_path.exists():
+                self.after(0, lambda: self._show_install_error(
+                    progress_window, "Update file not found. Please try again."))
+                return
+
+            # Verify hash
+            self.after(0, lambda: status_label.configure(text="Verifying download..."))
+            if update_info.sha256:
+                success, error = verify_hash(download_path, update_info.sha256)
+                if not success:
+                    download_path.unlink()
+                    self.after(0, lambda: self._show_install_error(progress_window, f"Security check failed: {error}"))
+                    return
+
+            # Create updater script
+            self.after(0, lambda: status_label.configure(text="Preparing installation..."))
+            backup_path = get_backup_path(current_exe)
+            try:
+                script_path = create_updater_script(current_exe, download_path, backup_path)
+            except Exception as e:
+                download_path.unlink()
+                self.after(0, lambda: self._show_install_error(progress_window, f"Could not create updater: {e}"))
+                return
+
+            # Launch updater script
+            self.after(0, lambda: status_label.configure(text="Launching updater..."))
+
+            CREATE_NEW_CONSOLE = 0x00000010
+            subprocess.Popen(
+                ['cmd.exe', '/c', str(script_path)],
+                creationflags=CREATE_NEW_CONSOLE,
+                close_fds=True,
             )
 
-            if not success:
-                self.after(0, lambda: self._show_install_error(progress_window, error))
+            # Exit from main thread
+            def exit_app():
+                self.destroy()
+                sys.exit(0)
+
+            self.after(100, exit_app)
 
         # Run installation in background
         threading.Thread(target=do_install, daemon=True).start()
