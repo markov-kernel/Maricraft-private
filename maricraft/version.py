@@ -7,7 +7,7 @@ import urllib.request
 from dataclasses import dataclass
 from typing import Optional, Tuple
 
-__version__ = "2.0.11"
+__version__ = "2.0.12"
 
 GITHUB_VERSION_URL = "https://raw.githubusercontent.com/markov-kernel/Maricraft-private/master/version.json"
 
@@ -30,7 +30,15 @@ def check_for_update() -> Optional[UpdateInfo]:
         UpdateInfo if update available, else None
     """
     try:
-        with urllib.request.urlopen(GITHUB_VERSION_URL, timeout=5) as response:
+        # Add cache-busting headers to avoid stale CDN responses
+        request = urllib.request.Request(
+            GITHUB_VERSION_URL,
+            headers={
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache',
+            }
+        )
+        with urllib.request.urlopen(request, timeout=5) as response:
             data = json.loads(response.read().decode())
             latest = data.get("version", "")
 
