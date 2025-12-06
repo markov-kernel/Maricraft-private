@@ -1,7 +1,7 @@
 {
     "version": "2.0.0",
-    "download_url": "https://github.com/markov_github/Maricraft/releases/latest",
+    "download_url": "https://github.com/markov-kernel/Maricraft-private/releases/latest",
     "exe_download_url": "",
     "sha256": "",
-    "release_notes": "Added datapack support for faster command execution"
+    "release_notes": "Initial release with datapack support and one-click auto-update"
 }

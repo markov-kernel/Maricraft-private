@@ -11,10 +11,10 @@ from ..theme import COLORS, FONTS, RADIUS, SPACING
 class SettingsDialog(ctk.CTkToplevel):
     """Settings configuration dialog."""
 
-    def __init__(self, parent, state: AppState, state_manager: StateManager):
+    def __init__(self, parent, app_state: AppState, state_manager: StateManager):
         super().__init__(parent)
 
-        self.state = state
+        self.app_state = app_state
         self.state_manager = state_manager
 
         # Window setup
@@ -58,7 +58,7 @@ class SettingsDialog(ctk.CTkToplevel):
             text_color=COLORS["text"],
         ).pack(side="left")
 
-        self.chat_key_var = ctk.StringVar(value=self.state.settings.chat_key)
+        self.chat_key_var = ctk.StringVar(value=self.app_state.settings.chat_key)
 
         chat_options = ctk.CTkFrame(chat_frame, fg_color="transparent")
         chat_options.pack(side="right")
@@ -94,7 +94,7 @@ class SettingsDialog(ctk.CTkToplevel):
             text_color=COLORS["text"],
         ).pack(side="left")
 
-        self.delay_var = ctk.StringVar(value=str(self.state.settings.delay_ms))
+        self.delay_var = ctk.StringVar(value=str(self.app_state.settings.delay_ms))
         self.delay_entry = ctk.CTkEntry(
             delay_frame,
             textvariable=self.delay_var,
@@ -127,7 +127,7 @@ class SettingsDialog(ctk.CTkToplevel):
             text_color=COLORS["text"],
         ).pack(side="left")
 
-        self.appearance_var = ctk.StringVar(value=self.state.appearance.mode)
+        self.appearance_var = ctk.StringVar(value=self.app_state.appearance.mode)
         appearance_menu = ctk.CTkOptionMenu(
             appearance_frame,
             variable=self.appearance_var,
@@ -154,7 +154,7 @@ class SettingsDialog(ctk.CTkToplevel):
             text_color=COLORS["text"],
         ).pack(side="left")
 
-        self.datapack_var = ctk.BooleanVar(value=self.state.settings.use_datapack_mode)
+        self.datapack_var = ctk.BooleanVar(value=self.app_state.settings.use_datapack_mode)
         ctk.CTkSwitch(
             datapack_frame,
             text="",
@@ -208,10 +208,10 @@ class SettingsDialog(ctk.CTkToplevel):
             return
 
         # Update state
-        self.state.settings.chat_key = self.chat_key_var.get()
-        self.state.settings.delay_ms = delay
-        self.state.settings.use_datapack_mode = self.datapack_var.get()
-        self.state.appearance.mode = self.appearance_var.get()
+        self.app_state.settings.chat_key = self.chat_key_var.get()
+        self.app_state.settings.delay_ms = delay
+        self.app_state.settings.use_datapack_mode = self.datapack_var.get()
+        self.app_state.appearance.mode = self.appearance_var.get()
 
         # Save and close
         self.state_manager.save()

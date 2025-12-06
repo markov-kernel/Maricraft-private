@@ -9,7 +9,7 @@ from typing import Optional, Tuple
 
 __version__ = "2.0.0"
 
-GITHUB_VERSION_URL = "https://raw.githubusercontent.com/markov_github/Maricraft/master/version.json"
+GITHUB_VERSION_URL = "https://raw.githubusercontent.com/markov-kernel/Maricraft-private/master/version.json"
 
 
 @dataclass

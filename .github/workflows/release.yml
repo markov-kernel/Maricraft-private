@@ -1,0 +1,87 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyautogui pygetwindow pyperclip pyinstaller
+
+      - name: Build with PyInstaller
+        run: |
+          pyinstaller maricraft.spec --clean --noconfirm
+
+      - name: Calculate SHA256
+        id: sha256
+        run: |
+          $hash = (Get-FileHash -Path dist\MariCraft.exe -Algorithm SHA256).Hash.ToLower()
+          echo "SHA256: $hash"
+          echo "hash=$hash" >> $env:GITHUB_OUTPUT
+        shell: pwsh
+
+      - name: Get version from tag
+        id: version
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart('v')
+          echo "version=$version" >> $env:GITHUB_OUTPUT
+        shell: pwsh
+
+      - name: Update version.json
+        run: |
+          $json = Get-Content version.json | ConvertFrom-Json
+          $json.sha256 = "${{ steps.sha256.outputs.hash }}"
+          $json.exe_download_url = "https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/MariCraft.exe"
+          $json | ConvertTo-Json -Depth 10 | Set-Content version.json
+          cat version.json
+        shell: pwsh
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/MariCraft.exe
+          generate_release_notes: true
+          body: |
+            ## Maricraft ${{ github.ref_name }}
+
+            ### Download
+            Download `MariCraft.exe` below and run it on Windows.
+
+            ### SHA256
+            ```
+            ${{ steps.sha256.outputs.hash }}
+            ```
+
+            ### Installation
+            1. Download `MariCraft.exe`
+            2. Run it (Windows may show a warning - click "More info" then "Run anyway")
+            3. Click "Install Datapack" and select your Minecraft worlds
+            4. In Minecraft, run `/reload` to activate
+
+      - name: Commit version.json update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add version.json
+          git diff --staged --quiet || git commit -m "chore: update version.json with release info [skip ci]"
+          git push origin HEAD:master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

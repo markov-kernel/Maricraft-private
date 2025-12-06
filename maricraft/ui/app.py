@@ -33,11 +33,11 @@ class App(ctk.CTk):
         super().__init__()
 
         # Load state
-        self.state_manager = get_state_manager()
-        self.state = self.state_manager.load()
+        self.app_state_manager = get_state_manager()
+        self.app_state = self.app_state_manager.load()
 
         # Configure appearance
-        ctk.set_appearance_mode(self.state.appearance.mode)
+        ctk.set_appearance_mode(self.app_state.appearance.mode)
         ctk.set_default_color_theme("blue")
 
         # Window setup
@@ -67,7 +67,7 @@ class App(ctk.CTk):
 
     def _setup_window_geometry(self) -> None:
         """Set up window size and position from saved state."""
-        w = self.state.window
+        w = self.app_state.window
         self.geometry(f"{w.width}x{w.height}")
         self.minsize(WINDOW["min_width"], WINDOW["min_height"])
 
@@ -98,7 +98,7 @@ class App(ctk.CTk):
         # Favorites bar
         self.favorites_bar = FavoritesBar(
             self.main_frame,
-            favorites=self.state.favorites,
+            favorites=self.app_state.favorites,
             on_click=self._on_favorite_click,
             get_button_info=self._get_button_info
         )
@@ -185,7 +185,7 @@ class App(ctk.CTk):
                 category=category,
                 on_button_click=self._on_button_click,
                 on_favorite_toggle=self._on_favorite_toggle,
-                is_favorite_fn=self.state.is_favorite,
+                is_favorite_fn=self.app_state.is_favorite,
             )
             frame.pack(fill="x", pady=(0, SPACING["md"]))
             self.category_frames.append(frame)
@@ -201,7 +201,7 @@ class App(ctk.CTk):
 
     def _on_search(self, query: str) -> None:
         """Handle search query changes."""
-        self.state.search_query = query.lower().strip()
+        self.app_state.search_query = query.lower().strip()
 
         # Count matching buttons
         visible_count = 0
@@ -211,20 +211,20 @@ class App(ctk.CTk):
             category_visible = 0
             for btn_widget in frame.buttons:
                 total_count += 1
-                matches = self._button_matches_search(btn_widget.button, self.state.search_query)
+                matches = self._button_matches_search(btn_widget.button, self.app_state.search_query)
                 btn_widget.set_visible(matches)
                 if matches:
                     visible_count += 1
                     category_visible += 1
 
             # Hide category if no buttons match
-            if category_visible == 0 and self.state.search_query:
+            if category_visible == 0 and self.app_state.search_query:
                 frame.pack_forget()
             else:
                 frame.pack(fill="x", pady=(0, SPACING["md"]))
 
         # Update search bar count
-        if self.state.search_query:
+        if self.app_state.search_query:
             self.search_bar.set_result_count(visible_count, total_count)
         else:
             self.search_bar.clear_result_count()
@@ -242,9 +242,9 @@ class App(ctk.CTk):
             return
 
         # Check datapack warning
-        if self.state.settings.use_datapack_mode and button.function_id:
-            if not self.state.datapack_warning_shown and not check_any_world_has_datapack():
-                self.state.datapack_warning_shown = True
+        if self.app_state.settings.use_datapack_mode and button.function_id:
+            if not self.app_state.datapack_warning_shown and not check_any_world_has_datapack():
+                self.app_state.datapack_warning_shown = True
                 result = self._ask_yes_no(
                     "Datapack Not Found",
                     "The Maricraft datapack was not found in any Minecraft world.\n\n"
@@ -264,9 +264,9 @@ class App(ctk.CTk):
 
     def _on_favorite_toggle(self, function_id: str) -> bool:
         """Handle favorite star toggle. Returns new favorite state."""
-        new_state = self.state.toggle_favorite(function_id)
-        self.favorites_bar.update_favorites(self.state.favorites)
-        self.state_manager.schedule_save(self)
+        new_state = self.app_state.toggle_favorite(function_id)
+        self.favorites_bar.update_favorites(self.app_state.favorites)
+        self.app_state_manager.schedule_save(self)
         return new_state
 
     def _on_favorite_click(self, function_id: str) -> None:
@@ -282,8 +282,8 @@ class App(ctk.CTk):
         self.stop_event.clear()
 
         settings = Settings(
-            chat_key=self.state.settings.chat_key,
-            delay_ms=self.state.settings.delay_ms,
+            chat_key=self.app_state.settings.chat_key,
+            delay_ms=self.app_state.settings.delay_ms,
             press_escape_first=True,
         )
 
@@ -321,15 +321,15 @@ class App(ctk.CTk):
     def _on_configure(self, event) -> None:
         """Handle window configure events (resize/move)."""
         if event.widget == self:
-            self.state.window.width = self.winfo_width()
-            self.state.window.height = self.winfo_height()
-            self.state.window.x = self.winfo_x()
-            self.state.window.y = self.winfo_y()
-            self.state_manager.schedule_save(self)
+            self.app_state.window.width = self.winfo_width()
+            self.app_state.window.height = self.winfo_height()
+            self.app_state.window.x = self.winfo_x()
+            self.app_state.window.y = self.winfo_y()
+            self.app_state_manager.schedule_save(self)
 
     def _on_close(self) -> None:
         """Handle window close."""
-        self.state_manager.save()
+        self.app_state_manager.save()
         self.destroy()
 
     def _check_for_updates_async(self) -> None:
@@ -392,7 +392,7 @@ class App(ctk.CTk):
     def _show_settings(self) -> None:
         """Show settings dialog."""
         from .components.settings_dialog import SettingsDialog
-        dialog = SettingsDialog(self, self.state, self.state_manager)
+        dialog = SettingsDialog(self, self.app_state, self.app_state_manager)
         dialog.grab_set()
 
     def _show_install_datapack(self) -> None:
