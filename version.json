@@ -1,7 +1,7 @@
 {
-  "version": "2.0.19",
+  "version": "2.0.20",
   "download_url": "https://github.com/markov-kernel/Maricraft-private/releases/latest",
-  "exe_download_url": "https://github.com/markov-kernel/Maricraft-private/releases/download/v2.0.19/MariCraft.exe",
-  "sha256": "72e0e96239159a9e04fc74623eace5beef49e7a8a8e0c244622f85dee37a035f",
-  "release_notes": "v2.0.19 release"
+  "exe_download_url": "https://github.com/markov-kernel/Maricraft-private/releases/download/v2.0.20/MariCraft.exe",
+  "sha256": "",
+  "release_notes": "Bundle psutil properly for Bedrock detection"
 }
