@@ -124,15 +124,22 @@ def create_updater_script(
     current_exe: Path,
     new_exe: Path,
     backup_exe: Path,
+    pid: int,
 ) -> Path:
     """Create a batch script to perform the file swap.
 
     The script:
-    1. Waits for the current process to exit
+    1. Waits for the current process to exit (by PID)
     2. Creates a backup of the old exe
     3. Moves the new exe into place
     4. Launches the new exe
     5. Cleans up the backup and itself
+
+    Args:
+        current_exe: Path to current executable
+        new_exe: Path to downloaded new executable
+        backup_exe: Path for backup
+        pid: Process ID of the running Maricraft instance
 
     Returns:
         Path to the created batch script
@@ -151,11 +158,11 @@ echo   Maricraft Auto-Updater
 echo ========================================
 echo.
 
-:: Wait for the main application to exit
-echo Waiting for Maricraft to close...
+:: Wait for the main application to exit (by PID)
+echo Waiting for Maricraft to close (PID: {pid})...
 :waitloop
 timeout /t 1 /nobreak >nul
-tasklist /FI "IMAGENAME eq {current_exe.name}" 2>nul | find /i "{current_exe.name}" >nul
+tasklist /FI "PID eq {pid}" 2>nul | find /i "{pid}" >nul
 if not errorlevel 1 goto waitloop
 
 echo Maricraft closed. Proceeding with update...
@@ -279,7 +286,7 @@ def perform_update(
     backup_path = get_backup_path(current_exe)
 
     try:
-        script_path = create_updater_script(current_exe, download_path, backup_path)
+        script_path = create_updater_script(current_exe, download_path, backup_path, os.getpid())
     except Exception as e:
         download_path.unlink()
         return False, f"Could not create updater script: {e}"

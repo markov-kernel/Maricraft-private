@@ -253,17 +253,17 @@ class App(ctk.CTk):
     def _detect_bedrock_window(self) -> bool:
         """Check if Minecraft Bedrock Edition is the active window.
 
-        Bedrock's window title is just "Minecraft"
+        Bedrock's window title is "Minecraft for Windows"
         Java Edition window title includes version like "Minecraft 1.20.1"
         """
         try:
             import pygetwindow as gw
             active = gw.getActiveWindow()
             if active and active.title:
-                # Bedrock window title is exactly "Minecraft" (no version)
-                # Java has patterns like "Minecraft 1.20.1" or "Minecraft* 1.21.1"
                 title = active.title.strip()
-                return title == "Minecraft"
+                # Bedrock: "Minecraft for Windows" or "Minecraft Preview for Windows"
+                # Java: "Minecraft 1.20.1" or "Minecraft* 1.21.1" (with asterisk for mods)
+                return "Minecraft for Windows" in title
         except Exception:
             pass
         return False
@@ -592,7 +592,8 @@ class App(ctk.CTk):
             self.after(0, lambda: status_label.configure(text="Preparing installation..."))
             backup_path = get_backup_path(current_exe)
             try:
-                script_path = create_updater_script(current_exe, download_path, backup_path)
+                import os
+                script_path = create_updater_script(current_exe, download_path, backup_path, os.getpid())
             except Exception as e:
                 download_path.unlink()
                 self.after(0, lambda: self._show_install_error(progress_window, f"Could not create updater: {e}"))
