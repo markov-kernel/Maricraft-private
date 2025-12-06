@@ -1,7 +1,7 @@
 {
-  "version": "2.0.21",
+  "version": "2.0.22",
   "download_url": "https://github.com/markov-kernel/Maricraft-private/releases/latest",
-  "exe_download_url": "https://github.com/markov-kernel/Maricraft-private/releases/download/v2.0.21/MariCraft.exe",
-  "sha256": "73009046447b5c6ac88a1bb17fcff0156f55856e4ffba78891d884c2e34ec366",
-  "release_notes": "Add psutil to CI build dependencies"
+  "exe_download_url": "https://github.com/markov-kernel/Maricraft-private/releases/download/v2.0.22/MariCraft.exe",
+  "sha256": "",
+  "release_notes": "Fix auto-update relaunch using explorer.exe"
 }

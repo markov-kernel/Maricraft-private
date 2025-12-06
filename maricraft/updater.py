@@ -228,10 +228,9 @@ if exist "{new_exe}" del /f /q "{new_exe}"
 :: Wait a moment for file system to sync
 timeout /t 3 /nobreak >nul
 
-:: Relaunch Maricraft from its directory (required for PyInstaller)
+:: Relaunch Maricraft using explorer (same as double-click, clean environment)
 echo Launching Maricraft...
-cd /d "{current_exe.parent}"
-start "" "{current_exe.name}"
+explorer.exe "{current_exe}"
 
 :cleanup
 :: Delete this script (uses a trick: cmd.exe releases the file after reading)
