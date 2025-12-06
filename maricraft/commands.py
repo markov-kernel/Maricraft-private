@@ -766,6 +766,49 @@ BUILDING_CREATION = CommandCategory(
             function_id="maricraft:building/remove_water"
             # Same for Bedrock
         ),
+        # === ELABORATE STRUCTURES ===
+        CommandButton(
+            name="Medieval Castle",
+            description="Build an epic castle with towers, walls, and moat!",
+            commands=["/say Building castle..."],  # Java fallback
+            color="#607D8B",
+            function_id="maricraft:building/medieval_castle"
+        ),
+        CommandButton(
+            name="Wizard Tower",
+            description="Build a mystical wizard tower with enchanting room!",
+            commands=["/say Building wizard tower..."],  # Java fallback
+            color="#7B1FA2",
+            function_id="maricraft:building/wizard_tower"
+        ),
+        CommandButton(
+            name="Pirate Ship",
+            description="Build a full pirate ship with sails and treasure!",
+            commands=["/say Building pirate ship..."],  # Java fallback
+            color="#5D4037",
+            function_id="maricraft:building/pirate_ship"
+        ),
+        CommandButton(
+            name="Underwater Dome",
+            description="Build a glass dome base - perfect underwater!",
+            commands=["/say Building underwater dome..."],  # Java fallback
+            color="#00BCD4",
+            function_id="maricraft:building/underwater_dome"
+        ),
+        CommandButton(
+            name="Pyramid",
+            description="Build an ancient pyramid with hidden treasure chamber!",
+            commands=["/say Building pyramid..."],  # Java fallback
+            color="#FFC107",
+            function_id="maricraft:building/pyramid"
+        ),
+        CommandButton(
+            name="Dragon Nest",
+            description="Build an epic dragon nest with dragon egg and gold!",
+            commands=["/say Building dragon nest..."],  # Java fallback
+            color="#4A148C",
+            function_id="maricraft:building/dragon_nest"
+        ),
     ]
 )
 
