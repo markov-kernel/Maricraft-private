@@ -176,22 +176,56 @@ def get_minecraft_saves_path() -> Optional[Path]:
     return mc_path if mc_path.exists() else None
 
 
+def get_all_bedrock_worlds_paths() -> List[Path]:
+    """Get all Bedrock Edition worlds directories on Windows.
+
+    Bedrock Edition can be installed in multiple locations:
+    1. Microsoft Store/UWP: %LOCALAPPDATA%/Packages/Microsoft.MinecraftUWP_8wekyb3d8bbwe/LocalState/games/com.mojang/minecraftWorlds
+    2. Xbox Game Pass / Minecraft Launcher: %APPDATA%/Minecraft Bedrock/games/com.mojang/minecraftWorlds
+
+    Returns:
+        List of existing worlds directory paths.
+    """
+    paths = []
+
+    # 1. Microsoft Store / UWP installation
+    localappdata = os.environ.get("LOCALAPPDATA")
+    if localappdata:
+        uwp_path = (
+            Path(localappdata) / "Packages" /
+            "Microsoft.MinecraftUWP_8wekyb3d8bbwe" /
+            "LocalState" / "games" / "com.mojang" / "minecraftWorlds"
+        )
+        if uwp_path.exists():
+            paths.append(uwp_path)
+
+    # 2. Xbox Game Pass / Minecraft Launcher installation
+    appdata = os.environ.get("APPDATA")
+    if appdata:
+        gamepass_path = (
+            Path(appdata) / "Minecraft Bedrock" / "games" / "com.mojang" / "minecraftWorlds"
+        )
+        if gamepass_path.exists():
+            paths.append(gamepass_path)
+
+        # Also check without 'games' subfolder (some installations vary)
+        alt_gamepass_path = (
+            Path(appdata) / "Minecraft Bedrock" / "minecraftWorlds"
+        )
+        if alt_gamepass_path.exists() and alt_gamepass_path not in paths:
+            paths.append(alt_gamepass_path)
+
+    return paths
+
+
 def get_bedrock_worlds_path() -> Optional[Path]:
     """Get Bedrock Edition worlds directory on Windows.
 
-    Bedrock Edition stores worlds in:
-    %LOCALAPPDATA%/Packages/Microsoft.MinecraftUWP_8wekyb3d8bbwe/LocalState/games/com.mojang/minecraftWorlds
+    Returns the first found path for backwards compatibility.
+    Use get_all_bedrock_worlds_paths() for all installations.
     """
-    localappdata = os.environ.get("LOCALAPPDATA")
-    if not localappdata:
-        return None
-
-    bedrock_path = (
-        Path(localappdata) / "Packages" /
-        "Microsoft.MinecraftUWP_8wekyb3d8bbwe" /
-        "LocalState" / "games" / "com.mojang" / "minecraftWorlds"
-    )
-    return bedrock_path if bedrock_path.exists() else None
+    paths = get_all_bedrock_worlds_paths()
+    return paths[0] if paths else None
 
 
 def list_bedrock_worlds() -> List[Tuple[str, Path]]:
@@ -200,24 +234,30 @@ def list_bedrock_worlds() -> List[Tuple[str, Path]]:
     Bedrock worlds have random folder names, but the actual world name
     is stored in a levelname.txt file inside each folder.
 
+    Checks ALL known Bedrock installation paths.
+
     Returns:
         List of (world_name, world_path) tuples, sorted alphabetically.
     """
-    worlds_path = get_bedrock_worlds_path()
-    if not worlds_path:
+    all_paths = get_all_bedrock_worlds_paths()
+    if not all_paths:
         return []
 
     worlds = []
-    for folder in worlds_path.iterdir():
-        if folder.is_dir():
-            levelname_file = folder / "levelname.txt"
-            if levelname_file.exists():
-                try:
-                    world_name = levelname_file.read_text(encoding="utf-8").strip()
-                    worlds.append((world_name, folder))
-                except Exception:
-                    # Fallback to folder name if levelname.txt is unreadable
-                    worlds.append((folder.name, folder))
+    seen_paths = set()  # Avoid duplicates if somehow paths overlap
+
+    for worlds_path in all_paths:
+        for folder in worlds_path.iterdir():
+            if folder.is_dir() and folder not in seen_paths:
+                seen_paths.add(folder)
+                levelname_file = folder / "levelname.txt"
+                if levelname_file.exists():
+                    try:
+                        world_name = levelname_file.read_text(encoding="utf-8").strip()
+                        worlds.append((world_name, folder))
+                    except Exception:
+                        # Fallback to folder name if levelname.txt is unreadable
+                        worlds.append((folder.name, folder))
 
     return sorted(worlds, key=lambda x: x[0].lower())
 
@@ -264,11 +304,21 @@ def get_all_minecraft_instances() -> List[Tuple[str, Path, Optional[str]]]:
                         version = detect_minecraft_version(instance_dir)
                         instances.append((f"CurseForge: {instance_dir.name}", saves, version))
 
-    # 4. Bedrock Edition
-    bedrock_worlds = get_bedrock_worlds_path()
-    if bedrock_worlds:
+    # 4. Bedrock Edition (check all installation paths)
+    bedrock_paths = get_all_bedrock_worlds_paths()
+    for i, bedrock_worlds in enumerate(bedrock_paths):
         # Use "bedrock" as special version identifier
-        instances.append(("Bedrock Edition", bedrock_worlds, "bedrock"))
+        if len(bedrock_paths) == 1:
+            name = "Bedrock Edition"
+        else:
+            # Multiple installations - add path hint
+            if "Microsoft.MinecraftUWP" in str(bedrock_worlds):
+                name = "Bedrock Edition (Microsoft Store)"
+            elif "Minecraft Bedrock" in str(bedrock_worlds):
+                name = "Bedrock Edition (Xbox/Launcher)"
+            else:
+                name = f"Bedrock Edition ({i + 1})"
+        instances.append((name, bedrock_worlds, "bedrock"))
 
     # Sort by instance name (case-insensitive)
     return sorted(instances, key=lambda x: x[0].lower())
