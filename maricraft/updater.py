@@ -184,16 +184,35 @@ if exist "{current_exe}" (
     )
 )
 
-:: Move new executable into place
+:: Show file info for debugging
+echo.
+echo Downloaded file: {new_exe}
+for %%A in ("{new_exe}") do echo Size: %%~zA bytes
+echo.
+
+:: Copy new executable into place (copy is more reliable than move)
 echo Installing new version...
-move /y "{new_exe}" "{current_exe}"
+copy /y "{new_exe}" "{current_exe}"
 if errorlevel 1 (
     echo ERROR: Could not install new version.
     echo Restoring backup...
-    move /y "{backup_exe}" "{current_exe}"
+    copy /y "{backup_exe}" "{current_exe}"
     pause
     goto cleanup
 )
+
+:: Verify the new exe exists and has content
+if not exist "{current_exe}" (
+    echo ERROR: New executable not found after copy.
+    echo Restoring backup...
+    copy /y "{backup_exe}" "{current_exe}"
+    pause
+    goto cleanup
+)
+
+:: Show installed file size
+echo Installed file: {current_exe}
+for %%A in ("{current_exe}") do echo Size: %%~zA bytes
 
 echo.
 echo ========================================
@@ -201,9 +220,13 @@ echo   Update successful!
 echo ========================================
 echo.
 
-:: Clean up backup
+:: Clean up temp files
 echo Cleaning up...
 if exist "{backup_exe}" del /f /q "{backup_exe}"
+if exist "{new_exe}" del /f /q "{new_exe}"
+
+:: Wait a moment for file system to sync
+timeout /t 2 /nobreak >nul
 
 :: Relaunch Maricraft
 echo Launching Maricraft...
