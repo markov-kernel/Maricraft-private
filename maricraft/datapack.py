@@ -919,6 +919,7 @@ def install_behavior_pack(world_path: Path, source_path: Optional[Path] = None) 
         source_path = get_bundled_behavior_pack_path()
 
     if source_path is None or not source_path.exists():
+        print(f"DEBUG: No bundled behavior pack found. source_path={source_path}")
         return False
 
     dest = world_path / "behavior_packs" / BEHAVIOR_PACK_NAME
@@ -937,7 +938,14 @@ def install_behavior_pack(world_path: Path, source_path: Optional[Path] = None) 
         _enable_behavior_pack_in_world(world_path)
 
         return True
-    except Exception:
+    except PermissionError as e:
+        print(f"DEBUG: Permission denied for {world_path}: {e}")
+        return False
+    except OSError as e:
+        print(f"DEBUG: OS error for {world_path}: {e}")
+        return False
+    except Exception as e:
+        print(f"DEBUG: Unexpected error for {world_path}: {type(e).__name__}: {e}")
         return False
 
 
