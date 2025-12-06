@@ -253,17 +253,32 @@ class App(ctk.CTk):
     def _detect_bedrock_window(self) -> bool:
         """Check if Minecraft Bedrock Edition is the active window.
 
-        Bedrock's window title is "Minecraft for Windows"
-        Java Edition window title includes version like "Minecraft 1.20.1"
+        Detection strategy:
+        - Java Edition titles always include version: "Minecraft 1.20.1", "Minecraft* 1.21.1"
+        - Bedrock titles are just "Minecraft" or contain "for Windows"
         """
         try:
+            import re
             import pygetwindow as gw
+
             active = gw.getActiveWindow()
             if active and active.title:
                 title = active.title.strip()
-                # Bedrock: "Minecraft for Windows" or "Minecraft Preview for Windows"
-                # Java: "Minecraft 1.20.1" or "Minecraft* 1.21.1" (with asterisk for mods)
-                return "Minecraft for Windows" in title
+
+                # Explicit Bedrock indicators
+                if "for Windows" in title:
+                    return True
+
+                # Java Edition has version number: "Minecraft 1.20.1" or "Minecraft* 1.21.1"
+                # Pattern: "Minecraft" optionally followed by "*" then space and version
+                java_pattern = r"^Minecraft\*?\s+\d+\.\d+"
+                if re.match(java_pattern, title):
+                    return False  # It's Java Edition
+
+                # Title is exactly "Minecraft" (no version) = Bedrock
+                if title == "Minecraft":
+                    return True
+
         except Exception:
             pass
         return False
