@@ -7,7 +7,7 @@ import urllib.request
 from dataclasses import dataclass
 from typing import Optional, Tuple
 
-__version__ = "2.0.25"
+__version__ = "2.0.26"
 
 GITHUB_VERSION_URL = "https://raw.githubusercontent.com/markov-kernel/Maricraft-private/master/version.json"
 

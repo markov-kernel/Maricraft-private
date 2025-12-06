@@ -418,8 +418,23 @@ class App(ctk.CTk):
     def _auto_install_datapacks(self) -> None:
         """Auto-install/update datapacks in background."""
         def worker():
-            from ..datapack import auto_install_all_datapacks
+            from ..datapack import auto_install_all_datapacks, get_all_bedrock_worlds_paths, get_all_minecraft_instances
+
+            # Debug: log detected paths
+            print("DEBUG: Checking for Minecraft installations...")
+            bedrock_paths = get_all_bedrock_worlds_paths()
+            if bedrock_paths:
+                print(f"DEBUG: Found Bedrock paths: {bedrock_paths}")
+            else:
+                print("DEBUG: No Bedrock worlds paths found")
+
+            all_instances = get_all_minecraft_instances()
+            print(f"DEBUG: All detected instances: {[(name, str(path), ver) for name, path, ver in all_instances]}")
+
             results = auto_install_all_datapacks()
+
+            # Debug: log results
+            print(f"DEBUG: Auto-install results: installed={results['installed']}, updated={results['updated']}, skipped={results['skipped']}, failed={results['failed']}")
 
             # Build status message
             installed = len(results["installed"])
