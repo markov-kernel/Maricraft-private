@@ -51,7 +51,7 @@ setblock ~10 ~17 ~14 purple_stained_glass
 fill ~8 ~16 ~8 ~12 ~16 ~12 oak_planks
 
 # Enchanting table in center
-setblock ~10 ~17 ~10 enchanting_table
+setblock ~10 ~17 ~10 enchant_table
 
 # Bookshelves around enchanting table
 fill ~8 ~17 ~8 ~8 ~19 ~12 bookshelf

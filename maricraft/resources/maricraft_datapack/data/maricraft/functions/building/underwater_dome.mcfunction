@@ -55,7 +55,7 @@ setblock ~0 ~1 ~0 conduit
 setblock ~-3 ~ ~0 chest
 setblock ~3 ~ ~0 crafting_table
 setblock ~0 ~ ~-3 furnace
-setblock ~0 ~ ~3 bed
+setblock ~0 ~ ~3 red_bed
 
 # Entrance tunnel (going down)
 fill ~0 ~-1 ~-8 ~0 ~1 ~-8 glass

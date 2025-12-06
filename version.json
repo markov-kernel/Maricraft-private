@@ -1,7 +1,7 @@
 {
-  "version": "2.0.29",
+  "version": "2.0.30",
   "download_url": "https://github.com/markov-kernel/Maricraft-private/releases/latest",
-  "exe_download_url": "https://github.com/markov-kernel/Maricraft-private/releases/download/v2.0.29/MariCraft.exe",
-  "sha256": "812bba521e6b0ffcececff512ebf37010c9fca44f94a2962f4522b6d0030f2e3",
-  "release_notes": "v2.0.29 release"
+  "exe_download_url": "https://github.com/markov-kernel/Maricraft-private/releases/download/v2.0.30/MariCraft.exe",
+  "sha256": "",
+  "release_notes": "v2.0.30 release"
 }
