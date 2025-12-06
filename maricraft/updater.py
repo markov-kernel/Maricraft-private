@@ -226,11 +226,12 @@ if exist "{backup_exe}" del /f /q "{backup_exe}"
 if exist "{new_exe}" del /f /q "{new_exe}"
 
 :: Wait a moment for file system to sync
-timeout /t 2 /nobreak >nul
+timeout /t 3 /nobreak >nul
 
-:: Relaunch Maricraft
+:: Relaunch Maricraft from its directory (required for PyInstaller)
 echo Launching Maricraft...
-start "" "{current_exe}"
+cd /d "{current_exe.parent}"
+start "" "{current_exe.name}"
 
 :cleanup
 :: Delete this script (uses a trick: cmd.exe releases the file after reading)
