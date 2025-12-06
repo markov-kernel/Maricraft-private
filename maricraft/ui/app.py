@@ -253,47 +253,35 @@ class App(ctk.CTk):
     def _detect_bedrock_running(self) -> bool:
         """Check if Minecraft Bedrock Edition is running.
 
-        Checks for running Bedrock processes. Bedrock uses:
-        - Minecraft.Windows.exe (GDK/Xbox App version)
+        Uses Windows tasklist command (no external dependencies).
         """
         try:
-            import psutil
-
-            for proc in psutil.process_iter(['name']):
-                try:
-                    proc_name = proc.info['name']
-                    if proc_name:
-                        proc_lower = proc_name.lower()
-                        # Check for exact Bedrock exe name
-                        if proc_lower == "minecraft.windows.exe":
-                            print(f"DEBUG: Found Bedrock process: {proc_name}")
-                            return True
-                        # Also log any minecraft-related processes for debugging
-                        if "minecraft" in proc_lower:
-                            print(f"DEBUG: Found other Minecraft process: {proc_name}")
-                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-                    pass
-        except ImportError:
-            print("DEBUG: psutil not installed!")
-        except Exception as e:
-            print(f"DEBUG: Exception in _detect_bedrock_running: {e}")
-        print("DEBUG: Bedrock NOT detected")
+            import subprocess
+            result = subprocess.run(
+                ['tasklist', '/FI', 'IMAGENAME eq Minecraft.Windows.exe', '/NH'],
+                capture_output=True,
+                text=True,
+                creationflags=subprocess.CREATE_NO_WINDOW
+            )
+            return 'minecraft.windows.exe' in result.stdout.lower()
+        except Exception:
+            pass
         return False
 
     def _detect_java_running(self) -> bool:
-        """Check if Minecraft Java Edition is running."""
-        try:
-            import psutil
+        """Check if Minecraft Java Edition is running.
 
-            for proc in psutil.process_iter(['name']):
-                try:
-                    proc_name = proc.info['name']
-                    if proc_name:
-                        # Java Edition runs as javaw.exe
-                        if proc_name.lower() == "javaw.exe":
-                            return True
-                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-                    pass
+        Uses Windows tasklist command (no external dependencies).
+        """
+        try:
+            import subprocess
+            result = subprocess.run(
+                ['tasklist', '/FI', 'IMAGENAME eq javaw.exe', '/NH'],
+                capture_output=True,
+                text=True,
+                creationflags=subprocess.CREATE_NO_WINDOW
+            )
+            return 'javaw.exe' in result.stdout.lower()
         except Exception:
             pass
         return False
@@ -323,16 +311,13 @@ class App(ctk.CTk):
 
         # Detect which edition is running
         is_bedrock = self._is_bedrock_mode()
-        print(f"DEBUG: _on_button_click - is_bedrock={is_bedrock}, button={button.name}")
 
         if is_bedrock:
             # Bedrock Edition: use bedrock_commands if available, otherwise fall back
             commands = button.bedrock_commands if button.bedrock_commands else button.commands
-            print(f"DEBUG: Using Bedrock path, commands={commands}")
             self._execute_commands(commands, button.name)
         else:
             # Java Edition: use datapack function if enabled, otherwise legacy mode
-            print(f"DEBUG: Using Java path, datapack_mode={self.app_state.settings.use_datapack_mode}, function_id={button.function_id}")
             if self.app_state.settings.use_datapack_mode and button.function_id:
                 if not self.app_state.datapack_warning_shown and not check_any_world_has_datapack():
                     self.app_state.datapack_warning_shown = True

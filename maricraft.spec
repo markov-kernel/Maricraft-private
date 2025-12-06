@@ -3,25 +3,21 @@
 
 import os
 import customtkinter
-from PyInstaller.utils.hooks import collect_all
 
 block_cipher = None
 
 # Get CustomTkinter path for bundling assets
 ctk_path = os.path.dirname(customtkinter.__file__)
 
-# Collect psutil (has compiled binaries)
-psutil_datas, psutil_binaries, psutil_hiddenimports = collect_all('psutil')
-
 a = Analysis(
     ['maricraft/__main__.py'],
     pathex=[],
-    binaries=psutil_binaries,
+    binaries=[],
     datas=[
         ('maricraft/resources/maricraft_datapack', 'resources/maricraft_datapack'),
         ('maricraft/resources/maricraft_behavior', 'resources/maricraft_behavior'),
         (ctk_path, 'customtkinter'),  # Bundle CustomTkinter assets
-    ] + psutil_datas,
+    ],
     hiddenimports=[
         'pyautogui',
         'pyperclip',
@@ -31,7 +27,7 @@ a = Analysis(
         'PIL._tkinter_finder',
         'customtkinter',
         'darkdetect',  # CTk dependency
-    ] + psutil_hiddenimports,
+    ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

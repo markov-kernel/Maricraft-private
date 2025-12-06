@@ -58,12 +58,6 @@ if %errorlevel% neq 0 (
     python -m pip install --upgrade customtkinter --user --quiet 2>nul
 )
 
-echo Installing psutil (Bedrock detection)...
-python -m pip install --upgrade psutil --quiet 2>nul
-if %errorlevel% neq 0 (
-    python -m pip install --upgrade psutil --user --quiet 2>nul
-)
-
 echo.
 echo ========================================
 echo Verifying installation...
@@ -96,16 +90,10 @@ if %errorlevel% neq 0 (
     set INSTALL_OK=0
 )
 
-python -c "import psutil; print('[OK] psutil')" 2>nul
-if %errorlevel% neq 0 (
-    echo [FAIL] psutil
-    set INSTALL_OK=0
-)
-
 if %INSTALL_OK%==0 (
     echo.
     echo [!] Some packages failed to install.
-    echo Try running: python -m pip install pyautogui pygetwindow pyperclip customtkinter psutil
+    echo Try running: python -m pip install pyautogui pygetwindow pyperclip customtkinter
     echo.
     pause
     exit /b 1
