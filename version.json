@@ -1,7 +1,7 @@
 {
-  "version": "2.0.18",
+  "version": "2.0.19",
   "download_url": "https://github.com/markov-kernel/Maricraft-private/releases/latest",
-  "exe_download_url": "https://github.com/markov-kernel/Maricraft-private/releases/download/v2.0.18/MariCraft.exe",
-  "sha256": "e3584d6682577f25ad17aa2a24cbbba56a0f83a052164dc493811ef2aab68a51",
-  "release_notes": "Fix auto-update relaunch from correct directory"
+  "exe_download_url": "https://github.com/markov-kernel/Maricraft-private/releases/download/v2.0.19/MariCraft.exe",
+  "sha256": "",
+  "release_notes": "v2.0.19 release"
 }
