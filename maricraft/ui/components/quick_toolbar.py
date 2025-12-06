@@ -26,7 +26,7 @@ class QuickToolbar(ctk.CTkToplevel):
         self.favorites = favorites
         self.on_click = on_click
         self.get_button_info = get_button_info
-        self.state = get_state()
+        self.app_state = get_state()
         self.state_manager = get_state_manager()
         self._dragging = False
         self._drag_start_x = 0
@@ -36,11 +36,11 @@ class QuickToolbar(ctk.CTkToplevel):
         self.title("Maricraft Quick Access")
         self.configure(fg_color=COLORS["background"])
         self.overrideredirect(True)  # Remove window decorations
-        self.attributes("-topmost", self.state.quick_toolbar.always_on_top)
+        self.attributes("-topmost", self.app_state.quick_toolbar.always_on_top)
 
         # Restore position
-        x = self.state.quick_toolbar.x
-        y = self.state.quick_toolbar.y
+        x = self.app_state.quick_toolbar.x
+        y = self.app_state.quick_toolbar.y
         self.geometry(f"+{x}+{y}")
 
         self._build_ui()
@@ -94,7 +94,7 @@ class QuickToolbar(ctk.CTkToplevel):
         # Pin button (toggle always on top)
         self.pin_btn = ctk.CTkButton(
             header,
-            text="\U0001F4CC" if self.state.quick_toolbar.always_on_top else "\U0001F4CE",
+            text="\U0001F4CC" if self.app_state.quick_toolbar.always_on_top else "\U0001F4CE",
             font=("Segoe UI", 10),
             width=25,
             height=25,
@@ -178,22 +178,22 @@ class QuickToolbar(ctk.CTkToplevel):
         """Stop window drag and save position."""
         if self._dragging:
             self._dragging = False
-            self.state.quick_toolbar.x = self.winfo_x()
-            self.state.quick_toolbar.y = self.winfo_y()
+            self.app_state.quick_toolbar.x = self.winfo_x()
+            self.app_state.quick_toolbar.y = self.winfo_y()
             self.state_manager.schedule_save(self)
 
     def _toggle_pin(self) -> None:
         """Toggle always-on-top."""
-        self.state.quick_toolbar.always_on_top = not self.state.quick_toolbar.always_on_top
-        self.attributes("-topmost", self.state.quick_toolbar.always_on_top)
+        self.app_state.quick_toolbar.always_on_top = not self.app_state.quick_toolbar.always_on_top
+        self.attributes("-topmost", self.app_state.quick_toolbar.always_on_top)
         self.pin_btn.configure(
-            text="\U0001F4CC" if self.state.quick_toolbar.always_on_top else "\U0001F4CE"
+            text="\U0001F4CC" if self.app_state.quick_toolbar.always_on_top else "\U0001F4CE"
         )
         self.state_manager.schedule_save(self)
 
     def _close(self) -> None:
         """Close the toolbar."""
-        self.state.quick_toolbar.visible = False
+        self.app_state.quick_toolbar.visible = False
         self.state_manager.save()
         self.destroy()
 

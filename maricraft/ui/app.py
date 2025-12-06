@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import threading
 import webbrowser
-from typing import Optional, Tuple, Callable
+from typing import Optional, Callable
 
 import customtkinter as ctk
 
@@ -14,7 +14,14 @@ from ..constants import DEFAULT_LOG_PATH
 from ..datapack import check_any_world_has_datapack
 from ..logger import Logger
 from ..settings import Settings
-from ..version import __version__, check_for_update
+from ..version import __version__, check_for_update, UpdateInfo
+from ..updater import (
+    is_frozen,
+    is_update_downloaded,
+    download_update_async,
+    perform_update,
+    cleanup_downloaded_update,
+)
 
 from .state import get_state_manager, get_state, AppState
 from .theme import COLORS, FONTS, WINDOW, SPACING, RADIUS
@@ -51,7 +58,9 @@ class App(ctk.CTk):
         self.stop_event = threading.Event()
         self.automator = WindowsAutomator(status_cb=self._set_status, stop_event=self.stop_event)
         self.is_running = False
-        self.update_available: Optional[Tuple[str, str]] = None
+        self.update_available: Optional[UpdateInfo] = None
+        self.update_downloaded = False
+        self.update_banner_widget: Optional[ctk.CTkFrame] = None
         self.category_frames: list[CategoryFrame] = []
         self.all_buttons: list[CommandButtonWidget] = []
 
@@ -222,6 +231,8 @@ class App(ctk.CTk):
                 frame.pack_forget()
             else:
                 frame.pack(fill="x", pady=(0, SPACING["md"]))
+                # Re-layout visible buttons in grid
+                frame._layout_buttons()
 
         # Update search bar count
         if self.app_state.search_query:
@@ -333,36 +344,66 @@ class App(ctk.CTk):
         self.destroy()
 
     def _check_for_updates_async(self) -> None:
-        """Check for updates in background."""
+        """Check for updates and download silently in background."""
         def check():
             result = check_for_update()
             if result:
-                self.after(0, lambda: self._show_update_banner(result))
+                self.update_available = result
+
+                # If running as .exe and exe_download_url available, download silently
+                if is_frozen() and result.exe_download_url:
+                    def on_download_complete(success: bool, error: str) -> None:
+                        if success:
+                            self.update_downloaded = True
+                        # Show banner whether download succeeded or not
+                        self.after(0, lambda: self._show_update_banner(result))
+
+                    download_update_async(result, on_download_complete)
+                else:
+                    # Not frozen or no exe URL, just show banner
+                    self.after(0, lambda: self._show_update_banner(result))
 
         threading.Thread(target=check, daemon=True).start()
 
-    def _show_update_banner(self, update_info: Tuple[str, str]) -> None:
-        """Show update available banner."""
-        version, url = update_info
-        self.update_available = update_info
+    def _show_update_banner(self, update_info: UpdateInfo) -> None:
+        """Show update available/ready banner."""
+        # Remove existing banner if any
+        if self.update_banner_widget:
+            self.update_banner_widget.destroy()
+
+        # Choose colors based on download status
+        if self.update_downloaded:
+            bg_color = COLORS["success"]
+            message = f"Update ready: v{update_info.version}"
+        else:
+            bg_color = COLORS["warning"]
+            message = f"Update available: v{update_info.version}"
 
         banner = ctk.CTkFrame(
             self.update_banner,
-            fg_color=COLORS["warning"],
+            fg_color=bg_color,
             corner_radius=RADIUS["md"],
         )
         banner.pack(fill="x", pady=(0, SPACING["sm"]))
+        self.update_banner_widget = banner
 
         # Message
         msg = ctk.CTkLabel(
             banner,
-            text=f"Update available: v{version}",
+            text=message,
             font=FONTS["body"],
             text_color=COLORS["text_dark"],
         )
         msg.pack(side="left", padx=SPACING["md"], pady=SPACING["sm"])
 
         # Close button
+        def on_close():
+            banner.destroy()
+            if self.update_downloaded:
+                cleanup_downloaded_update()
+                self.update_downloaded = False
+            self.update_banner_widget = None
+
         close_btn = ctk.CTkButton(
             banner,
             text="X",
@@ -372,22 +413,120 @@ class App(ctk.CTk):
             fg_color="transparent",
             hover_color=COLORS["danger"],
             text_color=COLORS["text_dark"],
-            command=banner.destroy,
+            command=on_close,
         )
         close_btn.pack(side="right", padx=SPACING["xs"])
 
-        # Download button
+        # Download button (browser fallback)
         download_btn = ctk.CTkButton(
             banner,
             text="Download",
             width=100,
             height=30,
             corner_radius=RADIUS["sm"],
-            fg_color=COLORS["success"],
-            hover_color=COLORS["primary"],
-            command=lambda: webbrowser.open(url),
+            fg_color=COLORS["surface_light"],
+            hover_color=COLORS["hover"],
+            text_color=COLORS["text"],
+            command=lambda: webbrowser.open(update_info.download_url),
         )
         download_btn.pack(side="right", padx=SPACING["sm"])
+
+        # Install Now button (only if update is downloaded and running as .exe)
+        if self.update_downloaded and is_frozen():
+            install_btn = ctk.CTkButton(
+                banner,
+                text="Install Now",
+                width=120,
+                height=30,
+                corner_radius=RADIUS["sm"],
+                fg_color=COLORS["primary"],
+                hover_color=COLORS["primary_dark"] if "primary_dark" in COLORS else COLORS["primary"],
+                text_color="white",
+                command=self._start_auto_update,
+            )
+            install_btn.pack(side="right", padx=SPACING["sm"])
+
+    def _start_auto_update(self) -> None:
+        """Start the auto-update installation process."""
+        if not self.update_available:
+            return
+
+        # Confirm with user
+        notes = self.update_available.release_notes
+        notes_text = f"\n\nWhat's new: {notes}" if notes else ""
+
+        result = self._ask_yes_no(
+            "Install Update",
+            f"Install Maricraft v{self.update_available.version}?{notes_text}\n\n"
+            "The app will close and reopen automatically."
+        )
+
+        if not result:
+            return
+
+        # Show progress dialog
+        self._show_install_progress()
+
+    def _show_install_progress(self) -> None:
+        """Show progress dialog during installation."""
+        if not self.update_available:
+            return
+
+        # Create progress window
+        progress_window = ctk.CTkToplevel(self)
+        progress_window.title("Installing Update")
+        progress_window.geometry("350x150")
+        progress_window.resizable(False, False)
+        progress_window.transient(self)
+        progress_window.grab_set()
+
+        # Center on parent
+        progress_window.update_idletasks()
+        x = self.winfo_x() + (self.winfo_width() - 350) // 2
+        y = self.winfo_y() + (self.winfo_height() - 150) // 2
+        progress_window.geometry(f"+{x}+{y}")
+
+        # Content
+        frame = ctk.CTkFrame(progress_window, fg_color="transparent")
+        frame.pack(fill="both", expand=True, padx=20, pady=20)
+
+        title = ctk.CTkLabel(
+            frame,
+            text=f"Installing Maricraft v{self.update_available.version}",
+            font=FONTS["heading"],
+        )
+        title.pack(pady=(0, 10))
+
+        status_label = ctk.CTkLabel(frame, text="Verifying download...")
+        status_label.pack()
+
+        progress = ctk.CTkProgressBar(frame, width=300, mode="indeterminate")
+        progress.pack(pady=10)
+        progress.start()
+
+        def progress_callback(stage: str, current: int, total: int) -> None:
+            self.after(0, lambda: status_label.configure(text=stage))
+
+        def do_install() -> None:
+            success, error = perform_update(
+                self.update_available,
+                progress_callback=progress_callback
+            )
+
+            if not success:
+                self.after(0, lambda: self._show_install_error(progress_window, error))
+
+        # Run installation in background
+        threading.Thread(target=do_install, daemon=True).start()
+
+    def _show_install_error(self, dialog: ctk.CTkToplevel, error: str) -> None:
+        """Show installation error and close dialog."""
+        dialog.destroy()
+        self._show_message(
+            f"Could not install update:\n\n{error}\n\n"
+            "You can download the update manually instead.",
+            "error"
+        )
 
     def _show_settings(self) -> None:
         """Show settings dialog."""

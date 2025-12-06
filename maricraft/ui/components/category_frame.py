@@ -85,12 +85,15 @@ class CategoryFrame(ctk.CTkFrame):
         )
         self.toggle_btn.pack(side="right")
 
-        # Button container (uses flow layout)
+        # Button container (uses grid layout with wrapping)
         self.button_container = ctk.CTkFrame(self, fg_color="transparent")
         self.button_container.pack(fill="x", padx=SPACING["md"], pady=(0, SPACING["md"]))
 
         # Create buttons
         self._create_buttons()
+
+        # Re-layout on resize
+        self.bind("<Configure>", self._on_resize)
 
     def _create_buttons(self) -> None:
         """Create command buttons for this category."""
@@ -104,8 +107,39 @@ class CategoryFrame(ctk.CTkFrame):
                 on_favorite_toggle=self.on_favorite_toggle,
                 is_favorite=is_fav,
             )
-            btn_widget.pack(side="left", padx=SPACING["xs"], pady=SPACING["xs"])
             self.buttons.append(btn_widget)
+
+        # Initial layout
+        self._layout_buttons()
+
+    def _on_resize(self, event=None) -> None:
+        """Handle resize to re-layout buttons."""
+        if event and event.widget == self:
+            self._layout_buttons()
+
+    def _layout_buttons(self) -> None:
+        """Layout buttons in a responsive grid."""
+        if not self.buttons:
+            return
+
+        # Calculate columns based on container width
+        container_width = self.winfo_width()
+        if container_width < 50:  # Not yet sized
+            container_width = 800  # Default
+
+        button_width = 180  # Button + star + padding
+        columns = max(2, min(6, (container_width - 20) // button_width))
+
+        # Place buttons in grid
+        for idx, btn_widget in enumerate(self.buttons):
+            if btn_widget._visible:
+                row = idx // columns
+                col = idx % columns
+                btn_widget.grid(row=row, column=col, padx=SPACING["xs"], pady=SPACING["xs"], sticky="w")
+
+        # Configure column weights for even distribution
+        for col in range(columns):
+            self.button_container.columnconfigure(col, weight=1)
 
     def _toggle_expand(self) -> None:
         """Toggle category expansion."""

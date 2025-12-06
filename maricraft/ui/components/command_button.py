@@ -114,12 +114,12 @@ class CommandButtonWidget(ctk.CTkFrame):
         self._update_star()
 
     def set_visible(self, visible: bool) -> None:
-        """Show or hide the button."""
+        """Show or hide the button (grid-based layout)."""
         if visible and not self._visible:
-            self.pack(side="left", padx=SPACING["xs"], pady=SPACING["xs"])
             self._visible = True
+            # Grid placement handled by parent CategoryFrame._layout_buttons()
         elif not visible and self._visible:
-            self.pack_forget()
+            self.grid_forget()
             self._visible = False
 
     def _setup_tooltip(self) -> None:
