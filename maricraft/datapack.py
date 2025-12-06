@@ -846,6 +846,8 @@ def generate_behavior_pack(output_path: Path, buttons: List["CommandButton"], ve
 def install_behavior_pack(world_path: Path, source_path: Optional[Path] = None) -> bool:
     """Install/update the behavior pack in a Bedrock world.
 
+    Also updates world_behavior_packs.json to enable the pack.
+
     Args:
         world_path: Path to the Bedrock world folder.
         source_path: Path to behavior pack folder. If None, uses bundled pack.
@@ -870,6 +872,50 @@ def install_behavior_pack(world_path: Path, source_path: Optional[Path] = None) 
 
         # Copy behavior pack
         shutil.copytree(source_path, dest)
+
+        # Enable the pack in world_behavior_packs.json
+        _enable_behavior_pack_in_world(world_path)
+
         return True
     except Exception:
         return False
+
+
+def _enable_behavior_pack_in_world(world_path: Path) -> None:
+    """Add Maricraft behavior pack to world_behavior_packs.json.
+
+    This file tells Bedrock which behavior packs are enabled for the world.
+    """
+    packs_file = world_path / "world_behavior_packs.json"
+
+    # Read manifest to get version
+    manifest_path = world_path / "behavior_packs" / BEHAVIOR_PACK_NAME / "manifest.json"
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        version = manifest["header"]["version"]
+    except Exception:
+        version = [2, 0, 0]
+
+    pack_entry = {
+        "pack_id": BEHAVIOR_PACK_UUID,
+        "version": version
+    }
+
+    # Read existing packs or start fresh
+    packs = []
+    if packs_file.exists():
+        try:
+            packs = json.loads(packs_file.read_text(encoding="utf-8"))
+            if not isinstance(packs, list):
+                packs = []
+        except Exception:
+            packs = []
+
+    # Remove existing Maricraft entry if present
+    packs = [p for p in packs if p.get("pack_id") != BEHAVIOR_PACK_UUID]
+
+    # Add our pack at the beginning
+    packs.insert(0, pack_entry)
+
+    # Write back
+    packs_file.write_text(json.dumps(packs, indent=2), encoding="utf-8")

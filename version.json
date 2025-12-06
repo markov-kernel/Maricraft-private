@@ -1,7 +1,7 @@
 {
-  "version": "2.0.5",
+  "version": "2.0.6",
   "download_url": "https://github.com/markov-kernel/Maricraft-private/releases/latest",
-  "exe_download_url": "https://github.com/markov-kernel/Maricraft-private/releases/download/v2.0.5/MariCraft.exe",
-  "sha256": "e1bfb4f517556b44427f18bd0180f960419147118f198d5b1244c2620d1558d2",
-  "release_notes": "Fix updater process detection using PID"
+  "exe_download_url": "https://github.com/markov-kernel/Maricraft-private/releases/download/v2.0.6/MariCraft.exe",
+  "sha256": "",
+  "release_notes": "v2.0.6 release"
 }
