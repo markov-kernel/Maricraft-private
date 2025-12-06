@@ -129,19 +129,19 @@ class TestJavaSelectorCheck:
 class TestJavaBlockCheck:
     """Test Java-only block name detection."""
 
-    def test_enchanting_table_flagged(self):
-        """'enchanting_table' should be flagged (use enchant_table)."""
-        issues = run_checks("setblock ~ ~ ~ enchanting_table")
+    def test_enchant_table_flagged(self):
+        """'enchant_table' (old name) should be flagged (use enchanting_table)."""
+        issues = run_checks("setblock ~ ~ ~ enchant_table")
         assert any(i.code == "JAVA_BLOCK" for i in issues)
 
-    def test_enchant_table_valid(self):
-        """'enchant_table' (Bedrock name) should be valid."""
-        issues = run_checks("setblock ~ ~ ~ enchant_table")
+    def test_enchanting_table_valid(self):
+        """'enchanting_table' (correct Bedrock name) should be valid."""
+        issues = run_checks("setblock ~ ~ ~ enchanting_table")
         assert not any(i.code == "JAVA_BLOCK" for i in issues)
 
-    def test_poppy_flagged(self):
-        """'poppy' should be flagged (use red_flower)."""
-        issues = run_checks("setblock ~ ~ ~ poppy")
+    def test_red_flower_flagged(self):
+        """'red_flower' (old name) should be flagged (use poppy)."""
+        issues = run_checks("setblock ~ ~ ~ red_flower")
         assert any(i.code == "JAVA_BLOCK" for i in issues)
 
 
@@ -324,3 +324,27 @@ class TestJavaExecuteSubcommands:
         """execute if score should NOT be flagged (valid in Bedrock)."""
         issues = run_checks("execute if score @s obj matches 10.. run say score is 10+")
         assert not any(i.code == "JAVA_EXECUTE" for i in issues)
+
+
+class TestDoorBlockStatesCheck:
+    """Test door block states detection."""
+
+    def test_door_without_states_flagged(self):
+        """Door setblock without block states should be flagged."""
+        issues = run_checks("setblock ~ ~ ~ oak_door")
+        assert any(i.code == "DOOR_BLOCK_STATES" for i in issues)
+
+    def test_door_with_states_valid(self):
+        """Door setblock with block states should NOT be flagged."""
+        issues = run_checks('setblock ~ ~ ~ oak_door ["direction"=1,"upper_block_bit"=false,"open_bit"=false]')
+        assert not any(i.code == "DOOR_BLOCK_STATES" for i in issues)
+
+    def test_iron_door_without_states_flagged(self):
+        """Iron door without block states should be flagged."""
+        issues = run_checks("setblock ~5 ~ ~2 iron_door")
+        assert any(i.code == "DOOR_BLOCK_STATES" for i in issues)
+
+    def test_non_door_block_not_flagged(self):
+        """Regular blocks should NOT be flagged for door check."""
+        issues = run_checks("setblock ~ ~ ~ stone")
+        assert not any(i.code == "DOOR_BLOCK_STATES" for i in issues)

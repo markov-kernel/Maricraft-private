@@ -1,0 +1,49 @@
+{
+  "timestamp": "2025-12-06T22:08:58.275877",
+  "total_files": 1,
+  "total_commands": 8,
+  "passed": 3,
+  "failed": 5,
+  "success_rate": 37.5,
+  "failures": [
+    {
+      "file": "/tmp/test_funcs/debug_execute_as.mcfunction",
+      "line": 12,
+      "command": "execute as @e[type=armor_stand,name=\"mc_anchor\",c=1] at @s run setblock ~ ~3 ~ gold_block",
+      "error": "Syntax error: Unexpected \"@e\": at \"xecute as >>@e<<[type=armo\""
+    },
+    {
+      "file": "/tmp/test_funcs/debug_execute_as.mcfunction",
+      "line": 13,
+      "command": "execute as @e[type=armor_stand,name=\"mc_anchor\",c=1] at @s run setblock ~ ~4 ~ diamond_block",
+      "error": "Syntax error: Unexpected \"@e\": at \"xecute as >>@e<<[type=armo\""
+    },
+    {
+      "file": "/tmp/test_funcs/debug_execute_as.mcfunction",
+      "line": 14,
+      "command": "execute as @e[type=armor_stand,name=\"mc_anchor\",c=1] at @s run setblock ~ ~5 ~ emerald_block",
+      "error": "Syntax error: Unexpected \"@e\": at \"xecute as >>@e<<[type=armo\""
+    },
+    {
+      "file": "/tmp/test_funcs/debug_execute_as.mcfunction",
+      "line": 15,
+      "command": "execute as @e[type=armor_stand,name=\"mc_anchor\",c=1] at @s run fill ~2 ~ ~2 ~4 ~2 ~4 glass",
+      "error": "Syntax error: Unexpected \"@e\": at \"xecute as >>@e<<[type=armo\""
+    },
+    {
+      "file": "/tmp/test_funcs/debug_execute_as.mcfunction",
+      "line": 20,
+      "command": "kill @e[type=armor_stand,name=\"mc_anchor\"]",
+      "error": "No targets matched selector"
+    }
+  ],
+  "file_results": [
+    {
+      "file": "/tmp/test_funcs/debug_execute_as.mcfunction",
+      "total": 8,
+      "passed": 3,
+      "failed": 5,
+      "success_rate": 37.5
+    }
+  ]
+}

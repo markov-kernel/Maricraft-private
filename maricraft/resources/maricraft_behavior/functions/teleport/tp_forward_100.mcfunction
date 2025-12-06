@@ -1,2 +1,8 @@
 # Maricraft: TP Forward 100
-execute @s ~~~ tp @s ^0 ^0 ^100
+# Anchor point for building
+summon armor_stand "mc_anchor" ~1 ~ ~1
+
+execute @e[type=armor_stand,name="mc_anchor",c=1] ~ ~ ~ execute @s ~~~ tp @s ^0 ^0 ^100
+
+# Clean up anchor
+kill @e[type=armor_stand,name="mc_anchor"]

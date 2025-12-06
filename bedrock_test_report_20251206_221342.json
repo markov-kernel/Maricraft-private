@@ -1,0 +1,49 @@
+{
+  "timestamp": "2025-12-06T22:13:42.625154",
+  "total_files": 1,
+  "total_commands": 8,
+  "passed": 3,
+  "failed": 5,
+  "success_rate": 37.5,
+  "failures": [
+    {
+      "file": "/tmp/test_funcs/debug_bedrock_syntax.mcfunction",
+      "line": 13,
+      "command": "execute @e[type=armor_stand,name=\"mc_anchor\",c=1] ~ ~ ~ setblock ~ ~3 ~ gold_block",
+      "error": "No targets matched selector"
+    },
+    {
+      "file": "/tmp/test_funcs/debug_bedrock_syntax.mcfunction",
+      "line": 14,
+      "command": "execute @e[type=armor_stand,name=\"mc_anchor\",c=1] ~ ~ ~ setblock ~ ~4 ~ diamond_block",
+      "error": "No targets matched selector"
+    },
+    {
+      "file": "/tmp/test_funcs/debug_bedrock_syntax.mcfunction",
+      "line": 15,
+      "command": "execute @e[type=armor_stand,name=\"mc_anchor\",c=1] ~ ~ ~ setblock ~ ~5 ~ emerald_block",
+      "error": "No targets matched selector"
+    },
+    {
+      "file": "/tmp/test_funcs/debug_bedrock_syntax.mcfunction",
+      "line": 18,
+      "command": "execute @e[type=armor_stand,name=\"mc_anchor\",c=1] ~ ~ ~ fill ~2 ~2 ~2 ~4 ~2 ~4 glass",
+      "error": "No targets matched selector"
+    },
+    {
+      "file": "/tmp/test_funcs/debug_bedrock_syntax.mcfunction",
+      "line": 23,
+      "command": "kill @e[type=armor_stand,name=\"mc_anchor\"]",
+      "error": "No targets matched selector"
+    }
+  ],
+  "file_results": [
+    {
+      "file": "/tmp/test_funcs/debug_bedrock_syntax.mcfunction",
+      "total": 8,
+      "passed": 3,
+      "failed": 5,
+      "success_rate": 37.5
+    }
+  ]
+}

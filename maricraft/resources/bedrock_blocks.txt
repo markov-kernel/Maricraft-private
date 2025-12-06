@@ -72,6 +72,7 @@ crimson_stem
 warped_stem
 
 # Doors
+wooden_door
 oak_door
 spruce_door
 birch_door
@@ -81,6 +82,17 @@ dark_oak_door
 iron_door
 crimson_door
 warped_door
+
+# Trapdoors
+trapdoor
+spruce_trapdoor
+birch_trapdoor
+jungle_trapdoor
+acacia_trapdoor
+dark_oak_trapdoor
+iron_trapdoor
+crimson_trapdoor
+warped_trapdoor
 
 # Stairs
 oak_stairs
@@ -244,6 +256,7 @@ nether_bricks
 nether_brick_fence
 soul_sand
 soul_soil
+magma
 magma_block
 glowstone
 shroomlight
@@ -265,7 +278,8 @@ red_sandstone
 chiseled_red_sandstone
 smooth_red_sandstone
 
-# Functional blocks (NOTE: enchant_table NOT enchanting_table!)
+# Functional blocks
+enchanting_table
 enchant_table
 bookshelf
 brewing_stand
@@ -338,7 +352,19 @@ dead_fire_coral_block
 dead_bubble_coral_block
 dead_horn_coral_block
 
-# Plants (NOTE: red_flower NOT poppy in Bedrock!)
+# Plants and flowers
+poppy
+dandelion
+blue_orchid
+allium
+azure_bluet
+red_tulip
+orange_tulip
+white_tulip
+pink_tulip
+oxeye_daisy
+cornflower
+lily_of_the_valley
 red_flower
 yellow_flower
 kelp
@@ -388,6 +414,7 @@ carved_pumpkin
 lit_pumpkin
 sponge
 wet_sponge
+web
 cobweb
 
 # Skulls/heads

@@ -1,0 +1,18 @@
+{
+  "timestamp": "2025-12-06T22:01:51.629902",
+  "total_files": 1,
+  "total_commands": 6,
+  "passed": 6,
+  "failed": 0,
+  "success_rate": 100.0,
+  "failures": [],
+  "file_results": [
+    {
+      "file": "/tmp/test_funcs/debug_handshake.mcfunction",
+      "total": 6,
+      "passed": 6,
+      "failed": 0,
+      "success_rate": 100.0
+    }
+  ]
+}

@@ -5,6 +5,7 @@ This module detects:
 - LINE_TOO_LONG: Commands exceeding 256 character limit
 - EXECUTE_DEPTH: Deeply nested execute chains (warning)
 - JAVA_EXECUTE: Java-only execute subcommands (store, if data, if predicate)
+- DOOR_BLOCK_STATES: Door placed without required block states
 """
 
 import re
@@ -112,5 +113,60 @@ class JavaExecuteSubcommandCheck(Check):
                     f"'{name}' is not supported in Bedrock Edition",
                     suggestion=reason
                 ))
+
+        return issues
+
+
+@register_check
+class DoorBlockStatesCheck(Check):
+    """Check for door placement without required block states.
+
+    In Bedrock Edition, doors need block states for proper placement:
+    - direction: 0-3 for facing direction
+    - upper_block_bit: false for bottom, true for top
+    - open_bit: whether door is open
+    - door_hinge_bit: hinge side (for top half)
+
+    Both halves of the door must be placed separately.
+
+    Example correct syntax:
+        setblock ~ ~ ~ oak_door ["direction"=1,"upper_block_bit"=false,"open_bit"=false]
+        setblock ~ ~1 ~ oak_door ["direction"=1,"upper_block_bit"=true,"door_hinge_bit"=false]
+    """
+
+    code = "DOOR_BLOCK_STATES"
+    severity = Severity.WARNING
+    description = "Door placed without block states may not work correctly"
+
+    # Door block types
+    DOOR_BLOCKS = {
+        'oak_door', 'spruce_door', 'birch_door', 'jungle_door',
+        'acacia_door', 'dark_oak_door', 'mangrove_door', 'cherry_door',
+        'bamboo_door', 'crimson_door', 'warped_door', 'iron_door',
+        'copper_door', 'exposed_copper_door', 'weathered_copper_door',
+        'oxidized_copper_door', 'waxed_copper_door', 'waxed_exposed_copper_door',
+        'waxed_weathered_copper_door', 'waxed_oxidized_copper_door',
+    }
+
+    def check(self, tokens: List[Token], context: ValidationContext) -> List[Issue]:
+        issues = []
+
+        cmd = context.command_name.lower()
+        if cmd != 'setblock':
+            return issues
+
+        line = context.line.lower()
+
+        # Check if any door block is used
+        for door in self.DOOR_BLOCKS:
+            if door in line:
+                # Check if block states are provided (look for [...])
+                if not re.search(r'\[.*\]', line):
+                    issues.append(self.create_issue(
+                        context,
+                        f"Door '{door}' placed without block states",
+                        suggestion='Add block states like ["direction"=1,"upper_block_bit"=false,"open_bit"=false] and place both top and bottom halves'
+                    ))
+                break
 
         return issues

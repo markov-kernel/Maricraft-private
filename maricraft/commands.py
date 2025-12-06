@@ -13,7 +13,7 @@ class CommandButton:
     description: str
     commands: List[str]  # Java Edition commands
     color: str = "#3498DB"
-    function_id: str = ""  # e.g., "maricraft:buffs/god_mode"
+    function_id: str = ""  # e.g., "buffs/god_mode" (Bedrock doesn't use namespace prefix)
     bedrock_commands: List[str] = None  # Bedrock Edition commands (optional)
 
 
@@ -34,7 +34,7 @@ BUFFS_EFFECTS = CommandCategory(
             description="Restore all health instantly",
             commands=["/effect give @s instant_health 1 255"],
             color="#FF6B6B",
-            function_id="maricraft:buffs/full_heal",
+            function_id="buffs/full_heal",
             bedrock_commands=["/effect @s instant_health 1 255"]
         ),
         CommandButton(
@@ -42,7 +42,7 @@ BUFFS_EFFECTS = CommandCategory(
             description="Fast regeneration for 5 minutes",
             commands=["/effect give @s regeneration 300 2 true"],
             color="#4ECDC4",
-            function_id="maricraft:buffs/super_regen",
+            function_id="buffs/super_regen",
             bedrock_commands=["/effect @s regeneration 300 2 true"]
         ),
         CommandButton(
@@ -50,7 +50,7 @@ BUFFS_EFFECTS = CommandCategory(
             description="Extra hearts for 10 minutes",
             commands=["/effect give @s health_boost 600 4 true"],
             color="#E74C3C",
-            function_id="maricraft:buffs/health_boost",
+            function_id="buffs/health_boost",
             bedrock_commands=["/effect @s health_boost 600 4 true"]
         ),
         CommandButton(
@@ -58,7 +58,7 @@ BUFFS_EFFECTS = CommandCategory(
             description="See in the dark for 10 minutes",
             commands=["/effect give @s night_vision 600 0 true"],
             color="#9B59B6",
-            function_id="maricraft:buffs/night_vision",
+            function_id="buffs/night_vision",
             bedrock_commands=["/effect @s night_vision 600 0 true"]
         ),
         CommandButton(
@@ -66,7 +66,7 @@ BUFFS_EFFECTS = CommandCategory(
             description="Run super fast for 5 minutes",
             commands=["/effect give @s speed 300 2 true"],
             color="#3498DB",
-            function_id="maricraft:buffs/speed_boost",
+            function_id="buffs/speed_boost",
             bedrock_commands=["/effect @s speed 300 2 true"]
         ),
         CommandButton(
@@ -74,7 +74,7 @@ BUFFS_EFFECTS = CommandCategory(
             description="Jump really high for 5 minutes",
             commands=["/effect give @s jump_boost 300 2 true"],
             color="#2ECC71",
-            function_id="maricraft:buffs/jump_boost",
+            function_id="buffs/jump_boost",
             bedrock_commands=["/effect @s jump_boost 300 2 true"]
         ),
         CommandButton(
@@ -82,7 +82,7 @@ BUFFS_EFFECTS = CommandCategory(
             description="Breathe underwater for 10 minutes",
             commands=["/effect give @s water_breathing 600 0 true"],
             color="#00CED1",
-            function_id="maricraft:buffs/water_breathing",
+            function_id="buffs/water_breathing",
             bedrock_commands=["/effect @s water_breathing 600 0 true"]
         ),
         CommandButton(
@@ -90,7 +90,7 @@ BUFFS_EFFECTS = CommandCategory(
             description="Immune to fire for 10 minutes",
             commands=["/effect give @s fire_resistance 600 0 true"],
             color="#E67E22",
-            function_id="maricraft:buffs/fire_resistance",
+            function_id="buffs/fire_resistance",
             bedrock_commands=["/effect @s fire_resistance 600 0 true"]
         ),
         CommandButton(
@@ -98,7 +98,7 @@ BUFFS_EFFECTS = CommandCategory(
             description="Fall slowly for 5 minutes",
             commands=["/effect give @s slow_falling 300 0 true"],
             color="#F1C40F",
-            function_id="maricraft:buffs/slow_falling",
+            function_id="buffs/slow_falling",
             bedrock_commands=["/effect @s slow_falling 300 0 true"]
         ),
         CommandButton(
@@ -106,7 +106,7 @@ BUFFS_EFFECTS = CommandCategory(
             description="Become invisible for 5 minutes",
             commands=["/effect give @s invisibility 300 0 true"],
             color="#95A5A6",
-            function_id="maricraft:buffs/invisibility",
+            function_id="buffs/invisibility",
             bedrock_commands=["/effect @s invisibility 300 0 true"]
         ),
         CommandButton(
@@ -114,7 +114,7 @@ BUFFS_EFFECTS = CommandCategory(
             description="Take less damage for 5 minutes",
             commands=["/effect give @s resistance 300 2 true"],
             color="#7F8C8D",
-            function_id="maricraft:buffs/resistance",
+            function_id="buffs/resistance",
             bedrock_commands=["/effect @s resistance 300 2 true"]
         ),
         CommandButton(
@@ -122,7 +122,7 @@ BUFFS_EFFECTS = CommandCategory(
             description="Deal more damage for 5 minutes",
             commands=["/effect give @s strength 300 2 true"],
             color="#C0392B",
-            function_id="maricraft:buffs/strength",
+            function_id="buffs/strength",
             bedrock_commands=["/effect @s strength 300 2 true"]
         ),
         CommandButton(
@@ -138,7 +138,7 @@ BUFFS_EFFECTS = CommandCategory(
                 "/effect give @s health_boost 99999 4 true",
             ],
             color="#FFD700",
-            function_id="maricraft:buffs/god_mode",
+            function_id="buffs/god_mode",
             bedrock_commands=[
                 "/effect @s regeneration 99999 4 true",
                 "/effect @s resistance 99999 4 true",
@@ -154,7 +154,7 @@ BUFFS_EFFECTS = CommandCategory(
             description="Remove all active effects",
             commands=["/effect clear @s"],
             color="#BDC3C7",
-            function_id="maricraft:buffs/clear_effects",
+            function_id="buffs/clear_effects",
             bedrock_commands=["/effect @s clear"]
         ),
         CommandButton(
@@ -162,7 +162,7 @@ BUFFS_EFFECTS = CommandCategory(
             description="Never get hungry for 10 minutes",
             commands=["/effect give @s saturation 600 0 true"],
             color="#F39C12",
-            function_id="maricraft:buffs/saturation",
+            function_id="buffs/saturation",
             bedrock_commands=["/effect @s saturation 600 0 true"]
         ),
         CommandButton(
@@ -170,7 +170,7 @@ BUFFS_EFFECTS = CommandCategory(
             description="Mine faster for 5 minutes",
             commands=["/effect give @s haste 300 2 true"],
             color="#1ABC9C",
-            function_id="maricraft:buffs/haste",
+            function_id="buffs/haste",
             bedrock_commands=["/effect @s haste 300 2 true"]
         ),
     ]
@@ -192,7 +192,7 @@ GEAR_ITEMS = CommandCategory(
                 "/give @s diamond_boots 1",
             ],
             color="#00BFFF",
-            function_id="maricraft:gear/diamond_armor"
+            function_id="gear/diamond_armor"
             # Same for Bedrock - no enchantments needed
         ),
         CommandButton(
@@ -205,7 +205,7 @@ GEAR_ITEMS = CommandCategory(
                 "/give @s netherite_boots 1",
             ],
             color="#4A4A4A",
-            function_id="maricraft:gear/netherite_armor"
+            function_id="gear/netherite_armor"
             # Same for Bedrock - no enchantments needed
         ),
         CommandButton(
@@ -215,7 +215,7 @@ GEAR_ITEMS = CommandCategory(
                 '/give @s netherite_sword[enchantments={levels:{sharpness:5,fire_aspect:2,looting:3,unbreaking:3,mending:1}}] 1'
             ],
             color="#8E44AD",
-            function_id="maricraft:gear/super_sword",
+            function_id="gear/super_sword",
             bedrock_commands=[
                 "/give @s netherite_sword 1",
                 "/enchant @s sharpness 5",
@@ -233,7 +233,7 @@ GEAR_ITEMS = CommandCategory(
                 "/give @s arrow 64",
             ],
             color="#D35400",
-            function_id="maricraft:gear/super_bow",
+            function_id="gear/super_bow",
             bedrock_commands=[
                 "/give @s bow 1",
                 "/enchant @s power 5",
@@ -250,7 +250,7 @@ GEAR_ITEMS = CommandCategory(
                 '/give @s netherite_pickaxe[enchantments={levels:{efficiency:5,fortune:3,unbreaking:3,mending:1}}] 1'
             ],
             color="#1ABC9C",
-            function_id="maricraft:gear/super_pickaxe",
+            function_id="gear/super_pickaxe",
             bedrock_commands=[
                 "/give @s netherite_pickaxe 1",
                 "/enchant @s efficiency 5",
@@ -266,7 +266,7 @@ GEAR_ITEMS = CommandCategory(
                 '/give @s netherite_axe[enchantments={levels:{sharpness:5,efficiency:5,unbreaking:3,mending:1}}] 1'
             ],
             color="#795548",
-            function_id="maricraft:gear/super_axe",
+            function_id="gear/super_axe",
             bedrock_commands=[
                 "/give @s netherite_axe 1",
                 "/enchant @s sharpness 5",
@@ -283,7 +283,7 @@ GEAR_ITEMS = CommandCategory(
                 "/give @s firework_rocket 64",
             ],
             color="#9B59B6",
-            function_id="maricraft:gear/elytra_rockets",
+            function_id="gear/elytra_rockets",
             bedrock_commands=[
                 "/give @s elytra 1",
                 "/enchant @s unbreaking 3",
@@ -298,7 +298,7 @@ GEAR_ITEMS = CommandCategory(
                 '/give @s trident[enchantments={levels:{loyalty:3,channeling:1,impaling:5,unbreaking:3}}] 1'
             ],
             color="#3498DB",
-            function_id="maricraft:gear/trident",
+            function_id="gear/trident",
             bedrock_commands=[
                 "/give @s trident 1",
                 "/enchant @s loyalty 3",
@@ -312,7 +312,7 @@ GEAR_ITEMS = CommandCategory(
             description="Unbreakable shield",
             commands=['/give @s shield[unbreakable={}] 1'],
             color="#7F8C8D",
-            function_id="maricraft:gear/shield",
+            function_id="gear/shield",
             bedrock_commands=[
                 "/give @s shield 1",
                 "/enchant @s unbreaking 3",
@@ -324,7 +324,7 @@ GEAR_ITEMS = CommandCategory(
             description="Stack of 64 golden apples",
             commands=["/give @s golden_apple 64"],
             color="#F1C40F",
-            function_id="maricraft:gear/golden_apples"
+            function_id="gear/golden_apples"
             # Same for Bedrock
         ),
         CommandButton(
@@ -332,7 +332,7 @@ GEAR_ITEMS = CommandCategory(
             description="Stack of enchanted golden apples (Notch apples)",
             commands=["/give @s enchanted_golden_apple 64"],
             color="#FFD700",
-            function_id="maricraft:gear/enchanted_apples"
+            function_id="gear/enchanted_apples"
             # Same for Bedrock
         ),
         CommandButton(
@@ -340,7 +340,7 @@ GEAR_ITEMS = CommandCategory(
             description="Stack of 16 ender pearls",
             commands=["/give @s ender_pearl 16"],
             color="#2C3E50",
-            function_id="maricraft:gear/ender_pearls"
+            function_id="gear/ender_pearls"
             # Same for Bedrock
         ),
         CommandButton(
@@ -348,7 +348,7 @@ GEAR_ITEMS = CommandCategory(
             description="Saves you from death",
             commands=["/give @s totem_of_undying 1"],
             color="#27AE60",
-            function_id="maricraft:gear/totem"
+            function_id="gear/totem"
             # Same for Bedrock
         ),
         CommandButton(
@@ -358,7 +358,7 @@ GEAR_ITEMS = CommandCategory(
                 '/give @s crossbow[enchantments={levels:{quick_charge:3,multishot:1,unbreaking:3}}] 1'
             ],
             color="#6C5B7B",
-            function_id="maricraft:gear/crossbow",
+            function_id="gear/crossbow",
             bedrock_commands=[
                 "/give @s crossbow 1",
                 "/enchant @s quick_charge 3",
@@ -376,7 +376,7 @@ GEAR_ITEMS = CommandCategory(
                 '/give @s netherite_hoe[enchantments={levels:{efficiency:5,unbreaking:3}}] 1',
             ],
             color="#34495E",
-            function_id="maricraft:gear/full_tool_set",
+            function_id="gear/full_tool_set",
             bedrock_commands=[
                 "/give @s netherite_pickaxe 1",
                 "/enchant @s efficiency 5",
@@ -398,7 +398,7 @@ GEAR_ITEMS = CommandCategory(
             description="Stack of cooked steak",
             commands=["/give @s cooked_beef 64"],
             color="#A93226",
-            function_id="maricraft:gear/steak"
+            function_id="gear/steak"
             # Same for Bedrock
         ),
     ]
@@ -415,7 +415,7 @@ TELEPORT_LOCATE = CommandCategory(
             description="Locate nearest village",
             commands=["/locate structure village"],
             color="#8D6E63",
-            function_id="maricraft:teleport/find_village",
+            function_id="teleport/find_village",
             bedrock_commands=["/locate structure village"]
         ),
         CommandButton(
@@ -423,7 +423,7 @@ TELEPORT_LOCATE = CommandCategory(
             description="Locate the End portal",
             commands=["/locate structure stronghold"],
             color="#607D8B",
-            function_id="maricraft:teleport/find_stronghold",
+            function_id="teleport/find_stronghold",
             bedrock_commands=["/locate structure stronghold"]
         ),
         CommandButton(
@@ -431,7 +431,7 @@ TELEPORT_LOCATE = CommandCategory(
             description="Locate woodland mansion",
             commands=["/locate structure mansion"],
             color="#795548",
-            function_id="maricraft:teleport/find_mansion",
+            function_id="teleport/find_mansion",
             bedrock_commands=["/locate structure mansion"]
         ),
         CommandButton(
@@ -439,7 +439,7 @@ TELEPORT_LOCATE = CommandCategory(
             description="Locate ocean monument",
             commands=["/locate structure monument"],
             color="#00ACC1",
-            function_id="maricraft:teleport/find_monument",
+            function_id="teleport/find_monument",
             bedrock_commands=["/locate structure monument"]
         ),
         CommandButton(
@@ -447,7 +447,7 @@ TELEPORT_LOCATE = CommandCategory(
             description="Locate nether fortress (use in Nether)",
             commands=["/locate structure fortress"],
             color="#B71C1C",
-            function_id="maricraft:teleport/find_fortress",
+            function_id="teleport/find_fortress",
             bedrock_commands=["/locate structure fortress"]
         ),
         CommandButton(
@@ -455,7 +455,7 @@ TELEPORT_LOCATE = CommandCategory(
             description="Locate bastion remnant (use in Nether)",
             commands=["/locate structure bastion_remnant"],
             color="#424242",
-            function_id="maricraft:teleport/find_bastion",
+            function_id="teleport/find_bastion",
             bedrock_commands=["/locate structure bastion_remnant"]
         ),
         CommandButton(
@@ -463,7 +463,7 @@ TELEPORT_LOCATE = CommandCategory(
             description="Locate desert or jungle temple",
             commands=["/locate structure desert_pyramid"],
             color="#FFB74D",
-            function_id="maricraft:teleport/find_temple",
+            function_id="teleport/find_temple",
             bedrock_commands=["/locate structure desert_pyramid"]
         ),
         CommandButton(
@@ -471,7 +471,7 @@ TELEPORT_LOCATE = CommandCategory(
             description="Locate abandoned mineshaft",
             commands=["/locate structure mineshaft"],
             color="#8D6E63",
-            function_id="maricraft:teleport/find_mineshaft",
+            function_id="teleport/find_mineshaft",
             bedrock_commands=["/locate structure mineshaft"]
         ),
         CommandButton(
@@ -479,7 +479,7 @@ TELEPORT_LOCATE = CommandCategory(
             description="Teleport to world spawn (0, ?, 0)",
             commands=["/tp @s 0 100 0"],
             color="#4CAF50",
-            function_id="maricraft:teleport/tp_spawn"
+            function_id="teleport/tp_spawn"
             # Same for Bedrock
         ),
         CommandButton(
@@ -487,7 +487,7 @@ TELEPORT_LOCATE = CommandCategory(
             description="Teleport 50 blocks up",
             commands=["/tp @s ~ ~50 ~"],
             color="#03A9F4",
-            function_id="maricraft:teleport/tp_up_50"
+            function_id="teleport/tp_up_50"
             # Same for Bedrock
         ),
         CommandButton(
@@ -495,7 +495,7 @@ TELEPORT_LOCATE = CommandCategory(
             description="Teleport 100 blocks forward (where you're looking)",
             commands=["/execute at @s run tp @s ^0 ^0 ^100"],
             color="#9C27B0",
-            function_id="maricraft:teleport/tp_forward_100",
+            function_id="teleport/tp_forward_100",
             bedrock_commands=["/execute @s ~~~ tp @s ^0 ^0 ^100"]
         ),
         CommandButton(
@@ -503,7 +503,7 @@ TELEPORT_LOCATE = CommandCategory(
             description="Teleport 75 blocks backward",
             commands=["/execute at @s run tp @s ^0 ^0 ^-75"],
             color="#FF5722",
-            function_id="maricraft:teleport/tp_back_75",
+            function_id="teleport/tp_back_75",
             bedrock_commands=["/execute @s ~~~ tp @s ^0 ^0 ^-75"]
         ),
         CommandButton(
@@ -511,7 +511,7 @@ TELEPORT_LOCATE = CommandCategory(
             description="Teleport to highest block at your position",
             commands=["/tp @s ~ 320 ~", "/effect give @s slow_falling 10 0 true"],
             color="#81C784",
-            function_id="maricraft:teleport/tp_surface",
+            function_id="teleport/tp_surface",
             bedrock_commands=["/tp @s ~ 320 ~", "/effect @s slow_falling 10 0 true"]
         ),
         CommandButton(
@@ -519,7 +519,7 @@ TELEPORT_LOCATE = CommandCategory(
             description="Locate end city (use in The End)",
             commands=["/locate structure end_city"],
             color="#CE93D8",
-            function_id="maricraft:teleport/find_end_city",
+            function_id="teleport/find_end_city",
             bedrock_commands=["/locate structure end_city"]
         ),
         CommandButton(
@@ -527,7 +527,7 @@ TELEPORT_LOCATE = CommandCategory(
             description="Locate trail ruins",
             commands=["/locate structure trail_ruins"],
             color="#BCAAA4",
-            function_id="maricraft:teleport/find_trail_ruins",
+            function_id="teleport/find_trail_ruins",
             bedrock_commands=["/locate structure trail_ruins"]
         ),
         CommandButton(
@@ -535,7 +535,7 @@ TELEPORT_LOCATE = CommandCategory(
             description="Locate ancient city (deep underground)",
             commands=["/locate structure ancient_city"],
             color="#455A64",
-            function_id="maricraft:teleport/find_ancient_city",
+            function_id="teleport/find_ancient_city",
             bedrock_commands=["/locate structure ancient_city"]
         ),
     ]
@@ -551,105 +551,105 @@ WORLD_CONTROL = CommandCategory(
             description="Change time to morning",
             commands=["/time set day"],
             color="#FFD54F",
-            function_id="maricraft:world/set_day"
+            function_id="world/set_day"
         ),
         CommandButton(
             name="Set Noon",
             description="Change time to noon",
             commands=["/time set noon"],
             color="#FFEB3B",
-            function_id="maricraft:world/set_noon"
+            function_id="world/set_noon"
         ),
         CommandButton(
             name="Set Night",
             description="Change time to night",
             commands=["/time set night"],
             color="#37474F",
-            function_id="maricraft:world/set_night"
+            function_id="world/set_night"
         ),
         CommandButton(
             name="Clear Weather",
             description="Stop rain and thunder",
             commands=["/weather clear"],
             color="#81D4FA",
-            function_id="maricraft:world/clear_weather"
+            function_id="world/clear_weather"
         ),
         CommandButton(
             name="Make Rain",
             description="Start raining",
             commands=["/weather rain"],
             color="#78909C",
-            function_id="maricraft:world/make_rain"
+            function_id="world/make_rain"
         ),
         CommandButton(
             name="Thunderstorm",
             description="Start a thunderstorm",
             commands=["/weather thunder"],
             color="#455A64",
-            function_id="maricraft:world/thunderstorm"
+            function_id="world/thunderstorm"
         ),
         CommandButton(
             name="Peaceful",
             description="No monsters spawn",
             commands=["/difficulty peaceful"],
             color="#A5D6A7",
-            function_id="maricraft:world/peaceful"
+            function_id="world/peaceful"
         ),
         CommandButton(
             name="Easy Mode",
             description="Monsters do less damage",
             commands=["/difficulty easy"],
             color="#C5E1A5",
-            function_id="maricraft:world/easy_mode"
+            function_id="world/easy_mode"
         ),
         CommandButton(
             name="Normal Mode",
             description="Normal monster difficulty",
             commands=["/difficulty normal"],
             color="#FFCC80",
-            function_id="maricraft:world/normal_mode"
+            function_id="world/normal_mode"
         ),
         CommandButton(
             name="Hard Mode",
             description="Monsters do more damage",
             commands=["/difficulty hard"],
             color="#EF9A9A",
-            function_id="maricraft:world/hard_mode"
+            function_id="world/hard_mode"
         ),
         CommandButton(
             name="Creative Mode",
             description="Fly and infinite items",
             commands=["/gamemode creative"],
             color="#CE93D8",
-            function_id="maricraft:world/creative_mode"
+            function_id="world/creative_mode"
         ),
         CommandButton(
             name="Survival Mode",
             description="Normal survival gameplay",
             commands=["/gamemode survival"],
             color="#90CAF9",
-            function_id="maricraft:world/survival_mode"
+            function_id="world/survival_mode"
         ),
         CommandButton(
             name="Spectator Mode",
             description="Fly through blocks invisibly",
             commands=["/gamemode spectator"],
             color="#B0BEC5",
-            function_id="maricraft:world/spectator_mode"
+            function_id="world/spectator_mode"
         ),
         CommandButton(
             name="Keep Inventory",
             description="Keep items when you die",
             commands=["/gamerule keepInventory true"],
             color="#80CBC4",
-            function_id="maricraft:world/keep_inventory"
+            function_id="world/keep_inventory"
         ),
         CommandButton(
             name="Kill Hostiles",
             description="Remove hostile mobs nearby",
             commands=["/kill @e[type=#minecraft:raiders,distance=..100]"],
             color="#E57373",
-            function_id="maricraft:world/kill_hostiles",
+            function_id="world/kill_hostiles",
             # Bedrock: kill common hostile mobs individually (no entity tags)
             bedrock_commands=[
                 "/kill @e[type=zombie,r=100]",
@@ -665,7 +665,7 @@ WORLD_CONTROL = CommandCategory(
             description="Stop the day/night cycle",
             commands=["/gamerule doDaylightCycle false"],
             color="#B39DDB",
-            function_id="maricraft:world/freeze_time"
+            function_id="world/freeze_time"
         ),
     ]
 )
@@ -680,7 +680,7 @@ BUILDING_CREATION = CommandCategory(
             description="Remove all blocks in a 10x10x10 cube around you",
             commands=["/fill ~-5 ~ ~-5 ~5 ~10 ~5 air"],
             color="#8BC34A",
-            function_id="maricraft:building/clear_area"
+            function_id="building/clear_area"
             # Same for Bedrock
         ),
         CommandButton(
@@ -688,7 +688,7 @@ BUILDING_CREATION = CommandCategory(
             description="Create a glass floor beneath you",
             commands=["/fill ~-4 ~-1 ~-4 ~4 ~-1 ~4 glass"],
             color="#81D4FA",
-            function_id="maricraft:building/glass_platform"
+            function_id="building/glass_platform"
             # Same for Bedrock
         ),
         CommandButton(
@@ -703,7 +703,7 @@ BUILDING_CREATION = CommandCategory(
                 "/fill ~6 ~1 ~8 ~7 ~2 ~8 glass",
             ],
             color="#9E9E9E",
-            function_id="maricraft:building/stone_house",
+            function_id="building/stone_house",
             bedrock_commands=[
                 "/fill ~2 ~ ~2 ~8 ~4 ~8 stone 0 hollow",
                 "/fill ~2 ~5 ~2 ~8 ~5 ~8 stonebrick",
@@ -717,7 +717,7 @@ BUILDING_CREATION = CommandCategory(
             description="Build a wooden bridge in front of you (20 blocks)",
             commands=["/fill ^-1 ^-1 ^1 ^1 ^-1 ^20 oak_planks"],
             color="#8D6E63",
-            function_id="maricraft:building/wood_bridge",
+            function_id="building/wood_bridge",
             bedrock_commands=["/fill ^-1 ^-1 ^1 ^1 ^-1 ^20 planks"]
         ),
         CommandButton(
@@ -731,7 +731,7 @@ BUILDING_CREATION = CommandCategory(
                 "/setblock ~ ~-1 ~ sea_lantern",
             ],
             color="#FFEB3B",
-            function_id="maricraft:building/light_up"
+            function_id="building/light_up"
             # Same for Bedrock
         ),
         CommandButton(
@@ -742,7 +742,7 @@ BUILDING_CREATION = CommandCategory(
                 "/fill ~-2 ~-1 ~-2 ~2 ~-1 ~2 water",
             ],
             color="#2196F3",
-            function_id="maricraft:building/water_pool"
+            function_id="building/water_pool"
             # Same for Bedrock
         ),
         CommandButton(
@@ -755,7 +755,7 @@ BUILDING_CREATION = CommandCategory(
                 "/fill ~5 ~-2 ~-4 ~6 ~-1 ~4 lava",
             ],
             color="#FF5722",
-            function_id="maricraft:building/lava_moat"
+            function_id="building/lava_moat"
             # Same for Bedrock
         ),
         CommandButton(
@@ -763,7 +763,7 @@ BUILDING_CREATION = CommandCategory(
             description="Drain all water in a 20-block radius",
             commands=["/fill ~-10 ~-5 ~-10 ~10 ~5 ~10 air replace water"],
             color="#4FC3F7",
-            function_id="maricraft:building/remove_water"
+            function_id="building/remove_water"
             # Same for Bedrock
         ),
         # === ELABORATE STRUCTURES ===
@@ -772,42 +772,42 @@ BUILDING_CREATION = CommandCategory(
             description="Build an epic castle with towers, walls, and moat!",
             commands=["/say Building castle..."],  # Java fallback
             color="#607D8B",
-            function_id="maricraft:building/medieval_castle"
+            function_id="building/medieval_castle"
         ),
         CommandButton(
             name="Wizard Tower",
             description="Build a mystical wizard tower with enchanting room!",
             commands=["/say Building wizard tower..."],  # Java fallback
             color="#7B1FA2",
-            function_id="maricraft:building/wizard_tower"
+            function_id="building/wizard_tower"
         ),
         CommandButton(
             name="Pirate Ship",
             description="Build a full pirate ship with sails and treasure!",
             commands=["/say Building pirate ship..."],  # Java fallback
             color="#5D4037",
-            function_id="maricraft:building/pirate_ship"
+            function_id="building/pirate_ship"
         ),
         CommandButton(
             name="Underwater Dome",
             description="Build a glass dome base - perfect underwater!",
             commands=["/say Building underwater dome..."],  # Java fallback
             color="#00BCD4",
-            function_id="maricraft:building/underwater_dome"
+            function_id="building/underwater_dome"
         ),
         CommandButton(
             name="Pyramid",
             description="Build an ancient pyramid with hidden treasure chamber!",
             commands=["/say Building pyramid..."],  # Java fallback
             color="#FFC107",
-            function_id="maricraft:building/pyramid"
+            function_id="building/pyramid"
         ),
         CommandButton(
             name="Dragon Nest",
             description="Build an epic dragon nest with dragon egg and gold!",
             commands=["/say Building dragon nest..."],  # Java fallback
             color="#4A148C",
-            function_id="maricraft:building/dragon_nest"
+            function_id="building/dragon_nest"
         ),
     ]
 )
@@ -828,7 +828,7 @@ FRIENDLY_MOBS = CommandCategory(
                 "/summon wolf ~ ~ ~-1 {Tame:1b,CollarColor:5}",
             ],
             color="#A1887F",
-            function_id="maricraft:mobs/wolf_pack",
+            function_id="mobs/wolf_pack",
             bedrock_commands=[
                 "/summon wolf ~ ~ ~",
                 "/summon wolf ~1 ~ ~",
@@ -843,7 +843,7 @@ FRIENDLY_MOBS = CommandCategory(
             description="Spawn a tamed cat (Java only - Bedrock: bring fish!)",
             commands=['/summon cat ~ ~ ~ {Tame:1b,variant:"minecraft:black"}'],
             color="#FF8A65",
-            function_id="maricraft:mobs/cat_friend",
+            function_id="mobs/cat_friend",
             bedrock_commands=[
                 "/summon cat ~ ~ ~",
                 "/give @s fish 5",
@@ -854,7 +854,7 @@ FRIENDLY_MOBS = CommandCategory(
             description="Spawn a saddled horse ready to ride",
             commands=['/summon horse ~ ~ ~ {Tame:1b,SaddleItem:{id:"minecraft:saddle",count:1}}'],
             color="#795548",
-            function_id="maricraft:mobs/horse_saddle",
+            function_id="mobs/horse_saddle",
             bedrock_commands=[
                 "/summon horse ~ ~ ~ minecraft:ageable_grow_up",
                 "/give @s saddle 1",
@@ -869,7 +869,7 @@ FRIENDLY_MOBS = CommandCategory(
                 "/summon parrot ~-1 ~ ~ {Variant:2}",
             ],
             color="#4CAF50",
-            function_id="maricraft:mobs/parrot_party",
+            function_id="mobs/parrot_party",
             bedrock_commands=[
                 "/summon parrot ~ ~ ~",
                 "/summon parrot ~1 ~ ~",
@@ -881,7 +881,7 @@ FRIENDLY_MOBS = CommandCategory(
             description="Spawn a protective iron golem",
             commands=["/summon iron_golem ~ ~ ~"],
             color="#78909C",
-            function_id="maricraft:mobs/iron_golem"
+            function_id="mobs/iron_golem"
             # Same for Bedrock
         ),
         CommandButton(
@@ -889,7 +889,7 @@ FRIENDLY_MOBS = CommandCategory(
             description="Spawn a snow golem friend",
             commands=["/summon snow_golem ~ ~ ~"],
             color="#ECEFF1",
-            function_id="maricraft:mobs/snow_golem"
+            function_id="mobs/snow_golem"
             # Same for Bedrock
         ),
         CommandButton(
@@ -897,7 +897,7 @@ FRIENDLY_MOBS = CommandCategory(
             description="Spawn a friendly dolphin (needs water!)",
             commands=["/summon dolphin ~ ~ ~"],
             color="#00BCD4",
-            function_id="maricraft:mobs/dolphin"
+            function_id="mobs/dolphin"
             # Same for Bedrock
         ),
         CommandButton(
@@ -910,7 +910,7 @@ FRIENDLY_MOBS = CommandCategory(
                 "/summon bee ~-1 ~3 ~",
             ],
             color="#FFC107",
-            function_id="maricraft:mobs/bee_hive"
+            function_id="mobs/bee_hive"
             # Same for Bedrock
         ),
     ]
@@ -931,7 +931,7 @@ FUN_COSMETIC = CommandCategory(
                 '/summon firework_rocket ~ ~1 ~3 {LifeTime:35,FireworksItem:{id:"minecraft:firework_rocket",count:1,components:{"minecraft:fireworks":{explosions:[{shape:"large_ball",colors:[I;16776960],has_twinkle:1b}],flight_duration:1b}}}}',
             ],
             color="#FF4081",
-            function_id="maricraft:fun/firework_show",
+            function_id="fun/firework_show",
             bedrock_commands=[
                 "/summon fireworks_rocket ~ ~1 ~",
                 "/summon fireworks_rocket ~3 ~1 ~",
@@ -944,7 +944,7 @@ FUN_COSMETIC = CommandCategory(
             description="Strike lightning where you stand!",
             commands=["/summon lightning_bolt ~ ~ ~"],
             color="#FFC107",
-            function_id="maricraft:fun/lightning_strike"
+            function_id="fun/lightning_strike"
             # Same for Bedrock
         ),
         CommandButton(
@@ -955,7 +955,7 @@ FUN_COSMETIC = CommandCategory(
                 "/effect give @s slow_falling 30 0 true",
             ],
             color="#7C4DFF",
-            function_id="maricraft:fun/giant_jump",
+            function_id="fun/giant_jump",
             bedrock_commands=[
                 "/effect @s levitation 2 50 true",
                 "/effect @s slow_falling 30 0 true",
@@ -971,7 +971,7 @@ FUN_COSMETIC = CommandCategory(
                 "/particle dust{color:[1.0,1.0,0.0],scale:2} ~ ~2 ~ 3 3 3 0 50",
             ],
             color="#E040FB",
-            function_id="maricraft:fun/disco_lights",
+            function_id="fun/disco_lights",
             bedrock_commands=[
                 "/particle minecraft:balloon_gas_particle ~ ~2 ~",
                 "/particle minecraft:falling_dust ~ ~2 ~",
@@ -984,7 +984,7 @@ FUN_COSMETIC = CommandCategory(
                 "/particle totem_of_undying ~ ~1 ~ 1 1 1 0.5 100",
             ],
             color="#FF80AB",
-            function_id="maricraft:fun/confetti",
+            function_id="fun/confetti",
             bedrock_commands=["/particle minecraft:totem_particle ~ ~1 ~"]
         ),
         CommandButton(
@@ -996,7 +996,7 @@ FUN_COSMETIC = CommandCategory(
                 "/summon armor_stand ~ ~ ~ {Invisible:1b,Fire:100,NoGravity:1b,Small:1b,Marker:1b}",
             ],
             color="#FF6E40",
-            function_id="maricraft:fun/safe_fire",
+            function_id="fun/safe_fire",
             bedrock_commands=[
                 "/effect @s fire_resistance 60 0 true",
                 "/effect @s regeneration 60 1 true",
@@ -1007,7 +1007,7 @@ FUN_COSMETIC = CommandCategory(
             description="Spawn a magical color-changing sheep!",
             commands=['/summon sheep ~ ~ ~ {CustomName:\'"jeb_"\'}'],
             color="#9C27B0",
-            function_id="maricraft:fun/rainbow_sheep",
+            function_id="fun/rainbow_sheep",
             bedrock_commands=['/summon sheep ~ ~ ~ minecraft:entity_born "jeb_"']
         ),
         CommandButton(
@@ -1024,7 +1024,7 @@ FUN_COSMETIC = CommandCategory(
                 "/setblock ~-2 ~ ~-2 oxeye_daisy",
             ],
             color="#E91E63",
-            function_id="maricraft:fun/flower_circle",
+            function_id="fun/flower_circle",
             bedrock_commands=[
                 "/setblock ~3 ~ ~ red_flower",
                 "/setblock ~-3 ~ ~ yellow_flower",
@@ -1049,7 +1049,7 @@ ADVANCED = CommandCategory(
             description="Clone a 10x10x10 area 15 blocks away",
             commands=["/clone ~-5 ~-1 ~-5 ~5 ~9 ~5 ~10 ~-1 ~-5"],
             color="#546E7A",
-            function_id="maricraft:advanced/clone_area"
+            function_id="advanced/clone_area"
             # Same for Bedrock
         ),
         CommandButton(
@@ -1057,7 +1057,7 @@ ADVANCED = CommandCategory(
             description="Get a monster spawner block",
             commands=["/give @s spawner 1"],
             color="#455A64",
-            function_id="maricraft:advanced/mob_spawner",
+            function_id="advanced/mob_spawner",
             bedrock_commands=["/give @s mob_spawner 1"]
         ),
         CommandButton(
@@ -1069,7 +1069,7 @@ ADVANCED = CommandCategory(
                 "/give @s repeating_command_block 1",
             ],
             color="#FF7043",
-            function_id="maricraft:advanced/command_block"
+            function_id="advanced/command_block"
             # Same for Bedrock
         ),
         CommandButton(
@@ -1077,7 +1077,7 @@ ADVANCED = CommandCategory(
             description="Get structure blocks for saving/loading builds",
             commands=["/give @s structure_block 4"],
             color="#8D6E63",
-            function_id="maricraft:advanced/structure_block"
+            function_id="advanced/structure_block"
             # Same for Bedrock
         ),
         CommandButton(
@@ -1085,7 +1085,7 @@ ADVANCED = CommandCategory(
             description="Tool to change block states (Java only)",
             commands=["/give @s debug_stick 1"],
             color="#7E57C2",
-            function_id="maricraft:advanced/debug_stick",
+            function_id="advanced/debug_stick",
             bedrock_commands=[]  # Not available in Bedrock
         ),
         CommandButton(
@@ -1093,7 +1093,7 @@ ADVANCED = CommandCategory(
             description="Invisible solid blocks",
             commands=["/give @s barrier 64"],
             color="#B0BEC5",
-            function_id="maricraft:advanced/barrier_blocks"
+            function_id="advanced/barrier_blocks"
             # Same for Bedrock
         ),
         CommandButton(
@@ -1103,7 +1103,7 @@ ADVANCED = CommandCategory(
                 "/give @s light 16",
             ],
             color="#FFF59D",
-            function_id="maricraft:advanced/light_blocks",
+            function_id="advanced/light_blocks",
             bedrock_commands=["/give @s light_block 16"]
         ),
         CommandButton(
@@ -1111,7 +1111,7 @@ ADVANCED = CommandCategory(
             description="Add 1000 experience points",
             commands=["/xp add @s 1000 points"],
             color="#76FF03",
-            function_id="maricraft:advanced/xp_boost",
+            function_id="advanced/xp_boost",
             bedrock_commands=["/xp 1000 @s"]
         ),
     ]

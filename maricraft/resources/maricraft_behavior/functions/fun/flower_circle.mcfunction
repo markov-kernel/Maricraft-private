@@ -1,10 +1,16 @@
 # Maricraft: Flower Circle
 # Creates a circle of flowers around you
-setblock ~3 ~ ~ red_flower
-setblock ~-3 ~ ~ yellow_flower
-setblock ~ ~ ~3 red_flower 1
-setblock ~ ~ ~-3 red_flower 2
-setblock ~2 ~ ~2 red_flower 3
-setblock ~-2 ~ ~2 red_flower 4
-setblock ~2 ~ ~-2 red_flower 5
-setblock ~-2 ~ ~-2 red_flower 7
+# Anchor point for building
+summon armor_stand "mc_anchor" ~1 ~ ~1
+
+execute @e[type=armor_stand,name="mc_anchor",c=1] ~ ~ ~ setblock ~3 ~ ~ poppy
+execute @e[type=armor_stand,name="mc_anchor",c=1] ~ ~ ~ setblock ~-3 ~ ~ dandelion
+execute @e[type=armor_stand,name="mc_anchor",c=1] ~ ~ ~ setblock ~ ~ ~3 blue_orchid
+execute @e[type=armor_stand,name="mc_anchor",c=1] ~ ~ ~ setblock ~ ~ ~-3 allium
+execute @e[type=armor_stand,name="mc_anchor",c=1] ~ ~ ~ setblock ~2 ~ ~2 azure_bluet
+execute @e[type=armor_stand,name="mc_anchor",c=1] ~ ~ ~ setblock ~-2 ~ ~2 red_tulip
+execute @e[type=armor_stand,name="mc_anchor",c=1] ~ ~ ~ setblock ~2 ~ ~-2 orange_tulip
+execute @e[type=armor_stand,name="mc_anchor",c=1] ~ ~ ~ setblock ~-2 ~ ~-2 pink_tulip
+
+# Clean up anchor
+kill @e[type=armor_stand,name="mc_anchor"]

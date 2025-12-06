@@ -51,29 +51,18 @@ class BedrockKnowledge:
         'distance': 'Use "r/rm".',
     }
 
-    # Java block names that need different names in Bedrock
-    # NOTE: Many blocks have been unified in recent Bedrock versions (1.20+)
-    # Only include blocks that are STILL different
+    # Block names that need different names in Bedrock
+    # Updated based on retail Bedrock testing (2024)
+    # Maps OLD/Java names -> CORRECT Bedrock names
     BLOCK_MAPPINGS: Dict[str, str] = {
-        # Enchanting - still different in Bedrock
-        'enchanting_table': 'enchant_table',
-
-        # Flowers (Bedrock still uses red_flower/yellow_flower for many)
-        'poppy': 'red_flower',
-        'dandelion': 'yellow_flower',
-        'blue_orchid': 'red_flower',
-        'allium': 'red_flower',
-        'azure_bluet': 'red_flower',
-        'red_tulip': 'red_flower',
-        'orange_tulip': 'red_flower',
-        'white_tulip': 'red_flower',
-        'pink_tulip': 'red_flower',
-        'oxeye_daisy': 'red_flower',
-        'cornflower': 'red_flower',
-        'lily_of_the_valley': 'red_flower',
-
-        # Legacy names
-        'wooden_door': 'oak_door',
+        # OLD Bedrock names that are now deprecated
+        'enchant_table': 'enchanting_table',  # Bedrock now uses enchanting_table
+        'red_flower': 'poppy',  # Bedrock now uses individual flower names
+        'yellow_flower': 'dandelion',  # Bedrock now uses dandelion
+        'oak_door': 'wooden_door',  # Bedrock oak door is wooden_door
+        'oak_trapdoor': 'trapdoor',  # Bedrock uses trapdoor for oak
+        'cobweb': 'web',  # Bedrock uses web
+        'magma_block': 'magma',  # Bedrock uses magma
     }
 
     # Blocks that REQUIRE a color prefix in Bedrock
