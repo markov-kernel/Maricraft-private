@@ -225,12 +225,16 @@ echo Cleaning up...
 if exist "{backup_exe}" del /f /q "{backup_exe}"
 if exist "{new_exe}" del /f /q "{new_exe}"
 
-:: Wait a moment for file system to sync
-timeout /t 3 /nobreak >nul
-
-:: Relaunch Maricraft using explorer (same as double-click, clean environment)
-echo Launching Maricraft...
-explorer.exe "{current_exe}"
+:: Done - don't auto-relaunch (causes issues with pyautogui)
+echo.
+echo ========================================
+echo   Update complete!
+echo ========================================
+echo.
+echo Please restart Maricraft to use the new version.
+echo.
+echo This window will close in 5 seconds...
+timeout /t 5 /nobreak >nul
 
 :cleanup
 :: Delete this script (uses a trick: cmd.exe releases the file after reading)
