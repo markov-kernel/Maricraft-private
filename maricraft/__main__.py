@@ -29,8 +29,8 @@ def run():
                 f"An error occurred:\n\n{error_msg}\n\nRun DEBUG_MARICRAFT.bat for details."
             )
             root.destroy()
-        except:
-            pass
+        except Exception:
+            pass  # GUI error dialog failed, will print to console instead
 
         # Also print to console
         print("\n" + "=" * 50)

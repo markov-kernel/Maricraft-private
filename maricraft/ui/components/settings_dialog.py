@@ -34,21 +34,28 @@ class SettingsDialog(ctk.CTkToplevel):
 
     def _build_ui(self) -> None:
         """Build the settings UI."""
-        # Main container
         main = ctk.CTkFrame(self, fg_color="transparent")
         main.pack(fill="both", expand=True, padx=SPACING["xl"], pady=SPACING["xl"])
 
-        # Title
-        title = ctk.CTkLabel(
-            main,
+        self._build_header(main)
+        self._build_chat_key_setting(main)
+        self._build_delay_setting(main)
+        self._build_appearance_setting(main)
+        self._build_toggle_settings(main)
+        self._build_action_buttons(main)
+
+    def _build_header(self, parent: ctk.CTkFrame) -> None:
+        """Build the settings header."""
+        ctk.CTkLabel(
+            parent,
             text="Settings",
             font=FONTS["heading"],
             text_color=COLORS["text"],
-        )
-        title.pack(anchor="w", pady=(0, SPACING["lg"]))
+        ).pack(anchor="w", pady=(0, SPACING["lg"]))
 
-        # Chat key setting
-        chat_frame = ctk.CTkFrame(main, fg_color="transparent")
+    def _build_chat_key_setting(self, parent: ctk.CTkFrame) -> None:
+        """Build chat key radio button setting."""
+        chat_frame = ctk.CTkFrame(parent, fg_color="transparent")
         chat_frame.pack(fill="x", pady=SPACING["sm"])
 
         ctk.CTkLabel(
@@ -83,8 +90,9 @@ class SettingsDialog(ctk.CTkToplevel):
             fg_color=COLORS["primary"],
         ).pack(side="left")
 
-        # Delay setting
-        delay_frame = ctk.CTkFrame(main, fg_color="transparent")
+    def _build_delay_setting(self, parent: ctk.CTkFrame) -> None:
+        """Build command delay entry setting."""
+        delay_frame = ctk.CTkFrame(parent, fg_color="transparent")
         delay_frame.pack(fill="x", pady=SPACING["sm"])
 
         ctk.CTkLabel(
@@ -106,18 +114,17 @@ class SettingsDialog(ctk.CTkToplevel):
         )
         self.delay_entry.pack(side="right")
 
-        # Help text for delay
-        help_text = ctk.CTkLabel(
-            main,
+        ctk.CTkLabel(
+            parent,
             text="Increase delay if commands are missed.\nDecrease for faster execution.",
             font=FONTS["small"],
             text_color=COLORS["text_secondary"],
             justify="left",
-        )
-        help_text.pack(anchor="w", pady=(SPACING["xs"], SPACING["lg"]))
+        ).pack(anchor="w", pady=(SPACING["xs"], SPACING["lg"]))
 
-        # Appearance mode
-        appearance_frame = ctk.CTkFrame(main, fg_color="transparent")
+    def _build_appearance_setting(self, parent: ctk.CTkFrame) -> None:
+        """Build appearance mode dropdown setting."""
+        appearance_frame = ctk.CTkFrame(parent, fg_color="transparent")
         appearance_frame.pack(fill="x", pady=SPACING["sm"])
 
         ctk.CTkLabel(
@@ -128,7 +135,7 @@ class SettingsDialog(ctk.CTkToplevel):
         ).pack(side="left")
 
         self.appearance_var = ctk.StringVar(value=self.app_state.appearance.mode)
-        appearance_menu = ctk.CTkOptionMenu(
+        ctk.CTkOptionMenu(
             appearance_frame,
             variable=self.appearance_var,
             values=["dark", "light", "system"],
@@ -140,11 +147,12 @@ class SettingsDialog(ctk.CTkToplevel):
             dropdown_hover_color=COLORS["surface_light"],
             text_color=COLORS["text"],
             command=self._on_appearance_change,
-        )
-        appearance_menu.pack(side="right")
+        ).pack(side="right")
 
+    def _build_toggle_settings(self, parent: ctk.CTkFrame) -> None:
+        """Build toggle switch settings (datapack mode, auto-install)."""
         # Datapack mode toggle
-        datapack_frame = ctk.CTkFrame(main, fg_color="transparent")
+        datapack_frame = ctk.CTkFrame(parent, fg_color="transparent")
         datapack_frame.pack(fill="x", pady=SPACING["sm"])
 
         ctk.CTkLabel(
@@ -164,7 +172,7 @@ class SettingsDialog(ctk.CTkToplevel):
         ).pack(side="right")
 
         # Auto-install datapack toggle
-        auto_install_frame = ctk.CTkFrame(main, fg_color="transparent")
+        auto_install_frame = ctk.CTkFrame(parent, fg_color="transparent")
         auto_install_frame.pack(fill="x", pady=SPACING["sm"])
 
         ctk.CTkLabel(
@@ -183,8 +191,9 @@ class SettingsDialog(ctk.CTkToplevel):
             progress_color=COLORS["success"],
         ).pack(side="right")
 
-        # Buttons
-        btn_frame = ctk.CTkFrame(main, fg_color="transparent")
+    def _build_action_buttons(self, parent: ctk.CTkFrame) -> None:
+        """Build save and cancel action buttons."""
+        btn_frame = ctk.CTkFrame(parent, fg_color="transparent")
         btn_frame.pack(fill="x", pady=(SPACING["xl"], 0))
 
         ctk.CTkButton(

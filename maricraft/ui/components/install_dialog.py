@@ -53,13 +53,19 @@ class InstallDatapackDialog(ctk.CTkToplevel):
             self._show_no_instances()
             return
 
-        # Main container
         main = ctk.CTkFrame(self, fg_color="transparent")
         main.pack(fill="both", expand=True, padx=SPACING["lg"], pady=SPACING["lg"])
 
-        # Instance selector
+        self._build_instance_selector(main)
+        self._build_world_list(main)
+        self._build_action_buttons(main)
+        self._build_path_info(main)
+        self._refresh_worlds()
+
+    def _build_instance_selector(self, parent: ctk.CTkFrame) -> None:
+        """Build the Minecraft instance dropdown selector."""
         ctk.CTkLabel(
-            main,
+            parent,
             text="Select Minecraft instance:",
             font=FONTS["heading"],
             text_color=COLORS["text"],
@@ -77,8 +83,8 @@ class InstallDatapackDialog(ctk.CTkToplevel):
             value=self.instance_display_names[0] if self.instance_display_names else ""
         )
 
-        instance_menu = ctk.CTkOptionMenu(
-            main,
+        ctk.CTkOptionMenu(
+            parent,
             variable=self.instance_var,
             values=self.instance_display_names,
             font=FONTS["body"],
@@ -91,36 +97,35 @@ class InstallDatapackDialog(ctk.CTkToplevel):
             dropdown_hover_color=COLORS["surface_light"],
             text_color=COLORS["text"],
             command=self._on_instance_change,
-        )
-        instance_menu.pack(fill="x", pady=(0, SPACING["sm"]))
+        ).pack(fill="x", pady=(0, SPACING["sm"]))
 
-        # Version info label
         self.version_label = ctk.CTkLabel(
-            main,
+            parent,
             text="",
             font=FONTS["body"],
             text_color=COLORS["success"],
         )
         self.version_label.pack(anchor="w", pady=(0, SPACING["md"]))
 
-        # Worlds label
+    def _build_world_list(self, parent: ctk.CTkFrame) -> None:
+        """Build the scrollable world list section."""
         ctk.CTkLabel(
-            main,
+            parent,
             text="Worlds in this instance:",
             font=FONTS["heading"],
             text_color=COLORS["text"],
         ).pack(anchor="w", pady=(0, SPACING["sm"]))
 
-        # Scrollable world list
         self.world_frame = ctk.CTkScrollableFrame(
-            main,
+            parent,
             fg_color=COLORS["surface"],
             corner_radius=RADIUS["md"],
         )
         self.world_frame.pack(fill="both", expand=True)
 
-        # Buttons frame
-        btn_frame = ctk.CTkFrame(main, fg_color="transparent")
+    def _build_action_buttons(self, parent: ctk.CTkFrame) -> None:
+        """Build selection and install action buttons."""
+        btn_frame = ctk.CTkFrame(parent, fg_color="transparent")
         btn_frame.pack(fill="x", pady=(SPACING["md"], 0))
 
         # Select all / none
@@ -173,17 +178,15 @@ class InstallDatapackDialog(ctk.CTkToplevel):
             command=self._install,
         ).pack(side="right", padx=(0, SPACING["sm"]))
 
-        # Path info
+    def _build_path_info(self, parent: ctk.CTkFrame) -> None:
+        """Build the path information label."""
         self.path_label = ctk.CTkLabel(
-            main,
+            parent,
             text="",
             font=FONTS["small"],
             text_color=COLORS["text_secondary"],
         )
         self.path_label.pack(anchor="w", pady=(SPACING["sm"], 0))
-
-        # Initial load
-        self._refresh_worlds()
 
     def _show_no_instances(self) -> None:
         """Show message when no Minecraft instances found."""

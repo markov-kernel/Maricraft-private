@@ -33,8 +33,8 @@ def format_results_text(results: List[ValidationResult], show_valid: bool = Fals
             if 'functions' in parts:
                 idx = parts.index('functions')
                 rel_path = '/'.join(parts[idx+1:])
-        except:
-            pass
+        except Exception:
+            pass  # Path parsing failed, use filename only
 
         if result.issues:
             output.append(f"\n{rel_path}")

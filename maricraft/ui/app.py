@@ -23,7 +23,7 @@ from ..updater import (
     cleanup_downloaded_update,
 )
 
-from .state import get_state_manager, get_state, AppState
+from .state import get_state_manager, get_state, AppState, StateManager
 from .theme import COLORS, FONTS, WINDOW, SPACING, RADIUS
 from .components.command_button import CommandButtonWidget
 from .components.category_frame import CategoryFrame
@@ -34,13 +34,22 @@ from .components.tooltip import ToolTip
 
 
 class App(ctk.CTk):
-    """Main Maricraft application window."""
+    """Main Maricraft application window.
 
-    def __init__(self):
+    Args:
+        state_manager: Optional StateManager for dependency injection (testing).
+        automator: Optional WindowsAutomator for dependency injection (testing).
+    """
+
+    def __init__(
+        self,
+        state_manager: Optional[StateManager] = None,
+        automator: Optional[WindowsAutomator] = None,
+    ):
         super().__init__()
 
-        # Load state
-        self.app_state_manager = get_state_manager()
+        # Load state (use injected or default)
+        self.app_state_manager = state_manager or get_state_manager()
         self.app_state = self.app_state_manager.load()
 
         # Configure appearance
@@ -56,7 +65,11 @@ class App(ctk.CTk):
 
         # State
         self.stop_event = threading.Event()
-        self.automator = WindowsAutomator(status_cb=self._set_status, stop_event=self.stop_event)
+        # Use injected automator or create default
+        if automator is not None:
+            self.automator = automator
+        else:
+            self.automator = WindowsAutomator(status_cb=self._set_status, stop_event=self.stop_event)
         self.is_running = False
         self.update_available: Optional[UpdateInfo] = None
         self.update_downloaded = False
@@ -216,9 +229,11 @@ class App(ctk.CTk):
         """Handle search query changes."""
         self.app_state.search_query = query.lower().strip()
 
-        # Count matching buttons
+        # Phase 1: Update visibility on all buttons and collect counts
         visible_count = 0
         total_count = 0
+        frames_to_show: list[CategoryFrame] = []
+        frames_to_hide: list[CategoryFrame] = []
 
         for frame in self.category_frames:
             category_visible = 0
@@ -230,13 +245,19 @@ class App(ctk.CTk):
                     visible_count += 1
                     category_visible += 1
 
-            # Hide category if no buttons match
+            # Categorize frames for batch update
             if category_visible == 0 and self.app_state.search_query:
-                frame.pack_forget()
+                frames_to_hide.append(frame)
             else:
-                frame.pack(fill="x", pady=(0, SPACING["md"]))
-                # Re-layout visible buttons in grid
-                frame._layout_buttons()
+                frames_to_show.append(frame)
+
+        # Phase 2: Batch update frame visibility and layout
+        for frame in frames_to_hide:
+            frame.pack_forget()
+
+        for frame in frames_to_show:
+            frame.pack(fill="x", pady=(0, SPACING["md"]))
+            frame._layout_buttons()
 
         # Update search bar count
         if self.app_state.search_query:
@@ -250,41 +271,31 @@ class App(ctk.CTk):
             return True
         return query in button.name.lower() or query in button.description.lower()
 
-    def _detect_bedrock_running(self) -> bool:
-        """Check if Minecraft Bedrock Edition is running.
+    def _is_process_running(self, exe_name: str) -> bool:
+        """Check if a process is running by executable name.
 
         Uses Windows tasklist command (no external dependencies).
         """
         try:
             import subprocess
             result = subprocess.run(
-                ['tasklist', '/FI', 'IMAGENAME eq Minecraft.Windows.exe', '/NH'],
+                ['tasklist', '/FI', f'IMAGENAME eq {exe_name}', '/NH'],
                 capture_output=True,
                 text=True,
                 creationflags=subprocess.CREATE_NO_WINDOW
             )
-            return 'minecraft.windows.exe' in result.stdout.lower()
+            return exe_name.lower() in result.stdout.lower()
         except Exception:
             pass
         return False
+
+    def _detect_bedrock_running(self) -> bool:
+        """Check if Minecraft Bedrock Edition is running."""
+        return self._is_process_running("Minecraft.Windows.exe")
 
     def _detect_java_running(self) -> bool:
-        """Check if Minecraft Java Edition is running.
-
-        Uses Windows tasklist command (no external dependencies).
-        """
-        try:
-            import subprocess
-            result = subprocess.run(
-                ['tasklist', '/FI', 'IMAGENAME eq javaw.exe', '/NH'],
-                capture_output=True,
-                text=True,
-                creationflags=subprocess.CREATE_NO_WINDOW
-            )
-            return 'javaw.exe' in result.stdout.lower()
-        except Exception:
-            pass
-        return False
+        """Check if Minecraft Java Edition is running."""
+        return self._is_process_running("javaw.exe")
 
     def _is_bedrock_mode(self) -> bool:
         """Determine if we should use Bedrock commands.

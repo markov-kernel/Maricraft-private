@@ -7,9 +7,14 @@ Implements the "Handshake Pattern" to solve the Anchor Paradox:
 - Entities summoned via WebSocket aren't queryable until the game tick ends
 - We use atomic naming (name in summon command) and testfor polling to ensure
   the anchor is ready before sending build commands
+
+Configuration via environment variables:
+- MARICRAFT_WS_HOST: WebSocket server host (default: 0.0.0.0)
+- MARICRAFT_WS_PORT: WebSocket server port (default: 19132)
 """
 
 import asyncio
+import os
 import time
 from dataclasses import dataclass, field
 from typing import Optional, Callable, Awaitable
@@ -19,6 +24,20 @@ try:
     import py_mcws
 except ImportError:
     py_mcws = None
+
+
+# WebSocket server configuration with environment variable overrides
+DEFAULT_WS_HOST = "0.0.0.0"
+DEFAULT_WS_PORT = 19132
+
+def get_ws_config() -> tuple[str, int]:
+    """Get WebSocket server configuration from environment or defaults."""
+    host = os.environ.get("MARICRAFT_WS_HOST", DEFAULT_WS_HOST)
+    try:
+        port = int(os.environ.get("MARICRAFT_WS_PORT", str(DEFAULT_WS_PORT)))
+    except ValueError:
+        port = DEFAULT_WS_PORT
+    return host, port
 
 
 # Anchor configuration
@@ -49,15 +68,17 @@ class BedrockCommandTester:
         results = await tester.test_commands(["give @s diamond", "tp @s ~ ~10 ~"])
     """
 
-    def __init__(self, host: str = "0.0.0.0", port: int = 19132):
+    def __init__(self, host: Optional[str] = None, port: Optional[int] = None):
         if py_mcws is None:
             raise ImportError(
                 "py-mcws is required for Bedrock testing. "
                 "Install it with: pip install py-mcws"
             )
 
-        self.host = host
-        self.port = port
+        # Use provided values or load from environment/defaults
+        default_host, default_port = get_ws_config()
+        self.host = host if host is not None else default_host
+        self.port = port if port is not None else default_port
         self.server = py_mcws.WebsocketServer()
         self.connected = asyncio.Event()
         self.results: list[CommandResult] = []

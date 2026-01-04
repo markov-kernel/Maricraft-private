@@ -5,6 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import List
 
+# Maximum effect duration in game ticks (~55 days in-game)
+# Used for "permanent" effects like GOD MODE that persist until cleared
+INFINITE_EFFECT_TICKS = 99999
+
 
 @dataclass
 class CommandButton:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import tkinter
 from typing import Optional
 
 import customtkinter as ctk
@@ -35,8 +36,8 @@ class ToolTip:
         if self._after_id:
             try:
                 self.widget.after_cancel(self._after_id)
-            except Exception:
-                pass
+            except tkinter.TclError:
+                pass  # Widget already destroyed
             self._after_id = None
 
     def _show(self) -> None:
@@ -50,15 +51,15 @@ class ToolTip:
         try:
             if not self.widget.winfo_exists():
                 return
-        except Exception:
-            return
+        except tkinter.TclError:
+            return  # Widget already destroyed
 
         # Position tooltip below and to the right of widget
         try:
             x = self.widget.winfo_rootx() + 20
             y = self.widget.winfo_rooty() + self.widget.winfo_height() + 5
-        except Exception:
-            return
+        except tkinter.TclError:
+            return  # Widget already destroyed
 
         # Create tooltip window
         try:
@@ -91,8 +92,8 @@ class ToolTip:
             )
             label.pack(padx=SPACING["sm"], pady=SPACING["xs"])
 
-        except Exception:
-            self._cleanup_tooltip()
+        except tkinter.TclError:
+            self._cleanup_tooltip()  # Widget or window creation failed
 
     def _hide(self, event=None) -> None:
         """Hide the tooltip."""
@@ -104,8 +105,8 @@ class ToolTip:
         if self.tooltip_window:
             try:
                 self.tooltip_window.destroy()
-            except Exception:
-                pass
+            except tkinter.TclError:
+                pass  # Window already destroyed
             self.tooltip_window = None
 
     def _on_destroy(self, event=None) -> None:

@@ -231,3 +231,9 @@ def get_state_manager() -> StateManager:
 def get_state() -> AppState:
     """Get the current application state."""
     return get_state_manager().state
+
+
+def reset_state_manager() -> None:
+    """Reset the global state manager (useful for testing)."""
+    global _state_manager
+    _state_manager = None

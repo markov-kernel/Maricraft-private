@@ -19,6 +19,15 @@ class ChatKey(Enum):
         return cls.T
 
 
+class StatusType(Enum):
+    """Status types for UI status bar."""
+    SUCCESS = "success"
+    ERROR = "error"
+    WARNING = "warning"
+    RUNNING = "running"
+    INFO = "info"
+
+
 # Timing Constants (milliseconds)
 DELAY_FAST_MS = 50
 DELAY_STANDARD_MS = 100
@@ -49,3 +58,10 @@ BUTTON_HEIGHT = 2
 # Auto-Update Settings
 UPDATE_DOWNLOAD_TIMEOUT = 60  # seconds
 UPDATE_MIN_EXE_SIZE = 1_000_000  # 1MB minimum valid size
+
+# UI Timing Constants (milliseconds)
+TOOLTIP_DELAY_MS = 500
+SEARCH_DEBOUNCE_MS = 150
+UPDATE_CHECK_DELAY_MS = 1000
+AUTO_INSTALL_DELAY_MS = 500
+STATE_SAVE_DEBOUNCE_MS = 500

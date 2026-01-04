@@ -1,0 +1,18 @@
+{
+  "_comment": "Minecraft version to pack_format mapping. See: https://minecraft.wiki/w/Pack_format",
+  "versions": {
+    "1.20": 15,
+    "1.20.1": 15,
+    "1.20.2": 18,
+    "1.20.3": 26,
+    "1.20.4": 26,
+    "1.20.5": 41,
+    "1.20.6": 41,
+    "1.21": 48,
+    "1.21.1": 48,
+    "1.21.2": 57,
+    "1.21.3": 57,
+    "1.21.4": 61
+  },
+  "default": 15
+}

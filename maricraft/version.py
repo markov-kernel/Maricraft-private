@@ -3,13 +3,19 @@
 from __future__ import annotations
 
 import json
+import os
+import urllib.error
 import urllib.request
 from dataclasses import dataclass
 from typing import Optional, Tuple
 
 __version__ = "2.0.32"
 
-GITHUB_VERSION_URL = "https://raw.githubusercontent.com/markov-kernel/Maricraft-private/master/version.json"
+# Allow override via environment variable for forks/testing
+GITHUB_VERSION_URL = os.environ.get(
+    "MARICRAFT_VERSION_URL",
+    "https://raw.githubusercontent.com/markov-kernel/Maricraft-private/master/version.json"
+)
 
 
 @dataclass
@@ -50,7 +56,7 @@ def check_for_update() -> Optional[UpdateInfo]:
                     sha256=data.get("sha256", ""),
                     release_notes=data.get("release_notes", ""),
                 )
-    except Exception:
+    except (urllib.error.URLError, json.JSONDecodeError, ValueError, KeyError, TimeoutError):
         pass  # Silently fail - don't block app startup
 
     return None
